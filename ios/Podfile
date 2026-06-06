@@ -1,0 +1,105 @@
+require File.join(File.dirname(`node --print "require.resolve('expo/package.json')"`), "scripts/autolinking")
+require File.join(File.dirname(`node --print "require.resolve('react-native/package.json')"`), "scripts/react_native_pods")
+
+require 'json'
+podfile_properties = JSON.parse(File.read(File.join(__dir__, 'Podfile.properties.json'))) rescue {}
+
+def ccache_enabled?(podfile_properties)
+  # Environment variable takes precedence
+  return ENV['USE_CCACHE'] == '1' if ENV['USE_CCACHE']
+  
+  # Fall back to Podfile properties
+  podfile_properties['apple.ccacheEnabled'] == 'true'
+end
+
+ENV['RCT_NEW_ARCH_ENABLED'] ||= '0' if podfile_properties['newArchEnabled'] == 'false'
+ENV['EX_DEV_CLIENT_NETWORK_INSPECTOR'] ||= podfile_properties['EX_DEV_CLIENT_NETWORK_INSPECTOR']
+ENV['RCT_USE_RN_DEP'] ||= '1' if podfile_properties['ios.buildReactNativeFromSource'] != 'true' && podfile_properties['newArchEnabled'] != 'false'
+ENV['RCT_USE_PREBUILT_RNCORE'] ||= '1' if podfile_properties['ios.buildReactNativeFromSource'] != 'true' && podfile_properties['newArchEnabled'] != 'false'
+platform :ios, podfile_properties['ios.deploymentTarget'] || '15.1'
+
+prepare_react_native_project!
+
+target 'Mentara' do
+  use_expo_modules!
+
+  if ENV['EXPO_USE_COMMUNITY_AUTOLINKING'] == '1'
+    config_command = ['node', '-e', "process.argv=['', '', 'config'];require('@react-native-community/cli').run()"];
+  else
+    config_command = [
+      'node',
+      '--no-warnings',
+      '--eval',
+      'require(\'expo/bin/autolinking\')',
+      'expo-modules-autolinking',
+      'react-native-config',
+      '--json',
+      '--platform',
+      'ios'
+    ]
+  end
+
+  config = use_native_modules!(config_command)
+
+  use_frameworks! :linkage => podfile_properties['ios.useFrameworks'].to_sym if podfile_properties['ios.useFrameworks']
+  use_frameworks! :linkage => ENV['USE_FRAMEWORKS'].to_sym if ENV['USE_FRAMEWORKS']
+
+  use_react_native!(
+    :path => config[:reactNativePath],
+    :hermes_enabled => podfile_properties['expo.jsEngine'] == nil || podfile_properties['expo.jsEngine'] == 'hermes',
+    # An absolute path to your application root.
+    :app_path => "#{Pod::Config.instance.installation_root}/..",
+    :privacy_file_aggregation_enabled => podfile_properties['apple.privacyManifestAggregationEnabled'] != 'false',
+  )
+
+  post_install do |installer|
+    react_native_post_install(
+      installer,
+      config[:reactNativePath],
+      :mac_catalyst_enabled => false,
+      :ccache_enabled => ccache_enabled?(podfile_properties),
+    )
+
+    # Fix missing header symlinks caused by React-Core-prebuilt storing headers flat
+    # while ReactCodegen and other pods expect them at nested react/renderer/* paths.
+    pods_pub = "#{installer.sandbox.root}/Headers/Public"
+    prebuilt  = "#{pods_pub}/React-Core-prebuilt"
+
+    symlinks = {
+      "#{pods_pub}/React-FabricComponents/react/renderer/components/text/ParagraphState.h"          => "#{prebuilt}/React_FabricComponents/ParagraphState.h",
+      "#{pods_pub}/React-FabricComponents/react/renderer/components/scrollview/HostPlatformScrollViewProps.h" => "#{prebuilt}/React_FabricComponents/HostPlatformScrollViewProps.h",
+      "#{pods_pub}/React-FabricComponents/react/renderer/textlayoutmanager/TextLayoutManager.h"      => "#{prebuilt}/React_FabricComponents/TextLayoutManager.h",
+      "#{pods_pub}/React-FabricComponents/react/renderer/textlayoutmanager/RCTTextLayoutManager.h"   => "#{prebuilt}/React_FabricComponents/RCTTextLayoutManager.h",
+      "#{pods_pub}/React-Fabric/react/renderer/components/view/HostPlatformViewProps.h"              => "#{prebuilt}/React_Fabric/HostPlatformViewProps.h",
+      "#{pods_pub}/React-Fabric/react/renderer/components/view/HostPlatformViewEventEmitter.h"       => "#{prebuilt}/React_Fabric/HostPlatformViewEventEmitter.h",
+      "#{pods_pub}/React-Fabric/react/renderer/components/view/HostPlatformTouch.h"                  => "#{prebuilt}/React_Fabric/HostPlatformTouch.h",
+      "#{pods_pub}/React-Fabric/react/renderer/components/view/HostPlatformScrollViewProps.h"        => "#{prebuilt}/React_Fabric/HostPlatformScrollViewProps.h",
+      "#{pods_pub}/React-Fabric/react/renderer/components/view/HostPlatformViewTraitsInitializer.h"  => "#{prebuilt}/React_Fabric/HostPlatformViewTraitsInitializer.h",
+      "#{pods_pub}/React-graphics/react/renderer/graphics/Float.h"                                   => "#{prebuilt}/React_graphics/Float.h",
+      "#{pods_pub}/React-graphics/react/renderer/graphics/HostPlatformColor.h"                       => "#{prebuilt}/React_graphics/HostPlatformColor.h",
+      "#{pods_pub}/React-graphics/react/renderer/graphics/PlatformColorParser.h"                     => "#{prebuilt}/React_graphics/PlatformColorParser.h",
+      "#{pods_pub}/React-graphics/react/renderer/graphics/RCTPlatformColorUtils.h"                   => "#{prebuilt}/React_graphics/RCTPlatformColorUtils.h",
+      # React-ImageManager headers: place under React-FabricImage which IS in HEADER_SEARCH_PATHS.
+      # This makes <react/renderer/imagemanager/...> resolvable without adding a new search path.
+      "#{pods_pub}/React-FabricImage/react/renderer/imagemanager/RCTImagePrimitivesConversions.h"   => "#{prebuilt}/React_ImageManager/RCTImagePrimitivesConversions.h",
+      "#{pods_pub}/React-FabricImage/react/renderer/imagemanager/ImageRequestParams.h"              => "#{prebuilt}/React_ImageManager/ImageRequestParams.h",
+      "#{pods_pub}/React-FabricImage/react/renderer/imagemanager/RCTImageManager.h"                 => "#{prebuilt}/React_ImageManager/RCTImageManager.h",
+      "#{pods_pub}/React-FabricImage/react/renderer/imagemanager/RCTImageManagerProtocol.h"         => "#{prebuilt}/React_ImageManager/RCTImageManagerProtocol.h",
+      "#{pods_pub}/React-FabricImage/react/renderer/imagemanager/RCTSyncImageManager.h"             => "#{prebuilt}/React_ImageManager/RCTSyncImageManager.h",
+    }
+
+    # stubs subdir
+    stubs_dir = "#{pods_pub}/React-Fabric/react/renderer/mounting/stubs"
+    mounting_dir = "#{pods_pub}/React-Fabric/react/renderer/mounting"
+    FileUtils.mkdir_p(stubs_dir)
+    ["StubView.h", "StubViewTree.h", "stubs.h"].each do |f|
+      symlinks["#{stubs_dir}/#{f}"] = "#{mounting_dir}/#{f}"
+    end
+
+    symlinks.each do |dest, src|
+      next unless File.exist?(src)
+      FileUtils.mkdir_p(File.dirname(dest))
+      FileUtils.ln_sf(src, dest) unless File.exist?(dest)
+    end
+  end
+end

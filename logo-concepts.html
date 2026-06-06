@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mentara — Logo Concepts</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #EEEDF5;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 80px 40px 100px;
+      gap: 0;
+    }
+
+    .page-header {
+      text-align: center;
+      margin-bottom: 56px;
+    }
+
+    .page-title {
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 7px;
+      text-transform: uppercase;
+      color: #0D4F5C;
+      opacity: 0.45;
+      margin-bottom: 10px;
+    }
+
+    .page-subtitle {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 28px;
+      font-weight: 400;
+      color: #0D4F5C;
+      letter-spacing: 0.5px;
+    }
+
+    .section-label {
+      font-size: 9px;
+      font-weight: 500;
+      letter-spacing: 5px;
+      text-transform: uppercase;
+      color: #0D4F5C;
+      opacity: 0.32;
+      margin-bottom: 20px;
+      align-self: flex-start;
+      margin-left: 2px;
+    }
+
+    /* ── Logo Row ─────────────────────────── */
+    .logo-row {
+      display: flex;
+      background: #FFFFFF;
+      border-radius: 24px;
+      overflow: hidden;
+      box-shadow: 0 4px 60px rgba(13, 79, 92, 0.08), 0 1px 4px rgba(13, 79, 92, 0.05);
+      width: 100%;
+      max-width: 920px;
+    }
+
+    .logo-card {
+      flex: 1;
+      padding: 64px 56px 52px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+    }
+
+    .logo-card + .logo-card {
+      border-left: 1px solid rgba(13, 79, 92, 0.07);
+    }
+
+    .logo-meta {
+      margin-top: 28px;
+      text-align: center;
+    }
+
+    .meta-num {
+      font-size: 9px;
+      font-weight: 500;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: #0D4F5C;
+      opacity: 0.28;
+      margin-bottom: 5px;
+    }
+
+    .meta-name {
+      font-family: 'Cormorant Garamond', Georgia, serif;
+      font-size: 15px;
+      color: #0D4F5C;
+      font-weight: 600;
+      letter-spacing: 0.3px;
+    }
+
+    /* ── Dark Row ─────────────────────────── */
+    .spacer-lg { margin-top: 56px; width: 100%; max-width: 920px; }
+
+    .dark-row {
+      display: flex;
+      background: #0D4F5C;
+      border-radius: 24px;
+      overflow: hidden;
+      width: 100%;
+      max-width: 920px;
+      box-shadow: 0 8px 60px rgba(13, 79, 92, 0.25);
+    }
+
+    .dark-card {
+      flex: 1;
+      padding: 56px 56px 44px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .dark-card + .dark-card {
+      border-left: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    /* ── Icon Row ─────────────────────────── */
+    .spacer-sm { margin-top: 56px; width: 100%; max-width: 920px; }
+
+    .icon-row {
+      display: flex;
+      width: 100%;
+      max-width: 920px;
+      gap: 16px;
+    }
+
+    .icon-card {
+      flex: 1;
+      background: white;
+      border-radius: 20px;
+      padding: 36px 28px 28px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      box-shadow: 0 2px 24px rgba(13, 79, 92, 0.06);
+    }
+
+    .icon-inner {
+      display: flex;
+      gap: 20px;
+      align-items: center;
+    }
+
+    .icon-bg-white {
+      width: 72px; height: 72px;
+      background: #F8F7FC;
+      border-radius: 18px;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    .icon-bg-teal {
+      width: 72px; height: 72px;
+      background: #0D4F5C;
+      border-radius: 18px;
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    .icon-label {
+      font-size: 9px;
+      font-weight: 500;
+      letter-spacing: 3px;
+      text-transform: uppercase;
+      color: #0D4F5C;
+      opacity: 0.3;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="page-header">
+    <div class="page-title">Mentara · Logo Exploration</div>
+    <div class="page-subtitle">Three Directions</div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       LIGHT / ON WHITE
+  ════════════════════════════════════════════ -->
+  <div class="section-label">On White</div>
+  <div class="logo-row">
+
+    <!-- ── CONCEPT 01: GUIDING STAR ── -->
+    <div class="logo-card">
+      <svg width="168" height="255" viewBox="0 0 180 270" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Teal star body: top + left + right rays with flat bottom edge -->
+        <polygon points="90,37 103,82 147,95 103,108 77,108 33,95 77,82" fill="#0D4F5C"/>
+        <!-- Amber downward spike -->
+        <polygon points="103,108 90,184 77,108" fill="#C98B30"/>
+        <!-- Center overlay circle (teal) -->
+        <circle cx="90" cy="95" r="17" fill="#0D4F5C"/>
+        <!-- Center amber dot -->
+        <circle cx="90" cy="95" r="7" fill="#C98B30"/>
+        <!-- Wordmark -->
+        <text x="90" y="234" font-family="'Cormorant Garamond', Georgia, serif"
+              font-size="19" fill="#0D4F5C" text-anchor="middle"
+              letter-spacing="6" font-weight="400">MENTARA</text>
+      </svg>
+      <div class="logo-meta">
+        <div class="meta-num">Concept 01</div>
+        <div class="meta-name">Guiding Star</div>
+      </div>
+    </div>
+
+    <!-- ── CONCEPT 02: BRIDGE LETTERMARK ── -->
+    <div class="logo-card">
+      <svg width="182" height="255" viewBox="0 0 200 270" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- M letterform: two vertical pillars + V valley -->
+        <path d="M28,174 L28,68 L100,136 L172,68 L172,174"
+              stroke="#0D4F5C" stroke-width="22"
+              stroke-linecap="butt" stroke-linejoin="miter" fill="none"/>
+        <!-- Bridge arch (cubic bezier — starts/ends vertically for a clean join) -->
+        <path d="M28,68 C28,6 172,6 172,68"
+              stroke="#C98B30" stroke-width="18" fill="none" stroke-linecap="round"/>
+        <!-- Amber anchor dots at arch feet -->
+        <circle cx="28"  cy="68" r="11" fill="#C98B30"/>
+        <circle cx="172" cy="68" r="11" fill="#C98B30"/>
+        <!-- Wordmark -->
+        <text x="100" y="234" font-family="'Cormorant Garamond', Georgia, serif"
+              font-size="19" fill="#0D4F5C" text-anchor="middle"
+              letter-spacing="6" font-weight="400">MENTARA</text>
+      </svg>
+      <div class="logo-meta">
+        <div class="meta-num">Concept 02</div>
+        <div class="meta-name">Bridge Lettermark</div>
+      </div>
+    </div>
+
+    <!-- ── CONCEPT 07: OPEN BOOK + COMPASS ── -->
+    <div class="logo-card">
+      <svg width="168" height="255" viewBox="0 0 180 270" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Left page (full teal) -->
+        <path d="M90,78 L14,95 L14,162 L90,162 Z" fill="#0D4F5C"/>
+        <!-- Right page (slightly lighter — depth illusion) -->
+        <path d="M90,78 L166,95 L166,162 L90,162 Z" fill="#0D4F5C" opacity="0.68"/>
+        <!-- Page rule lines — left (perspective foreshortened) -->
+        <line x1="23" y1="113" x2="82" y2="111" stroke="white" stroke-width="1.5" opacity="0.2"/>
+        <line x1="23" y1="123" x2="82" y2="121" stroke="white" stroke-width="1.5" opacity="0.2"/>
+        <line x1="23" y1="133" x2="82" y2="131" stroke="white" stroke-width="1.5" opacity="0.2"/>
+        <line x1="23" y1="143" x2="82" y2="141" stroke="white" stroke-width="1.5" opacity="0.2"/>
+        <!-- Page rule lines — right -->
+        <line x1="98" y1="111" x2="157" y2="113" stroke="white" stroke-width="1.5" opacity="0.2"/>
+        <line x1="98" y1="121" x2="157" y2="123" stroke="white" stroke-width="1.5" opacity="0.2"/>
+        <line x1="98" y1="131" x2="157" y2="133" stroke="white" stroke-width="1.5" opacity="0.2"/>
+        <line x1="98" y1="141" x2="157" y2="143" stroke="white" stroke-width="1.5" opacity="0.2"/>
+        <!-- Spine -->
+        <line x1="90" y1="72" x2="90" y2="165" stroke="#0A3B46" stroke-width="4"/>
+        <!-- Compass arrow emerging upward from spine (amber) -->
+        <path d="M90,24 L103,57 L96,57 L96,78 L84,78 L84,57 L77,57 Z" fill="#C98B30"/>
+        <!-- Base anchor circle -->
+        <circle cx="90" cy="162" r="7" fill="#C98B30"/>
+        <!-- Wordmark -->
+        <text x="90" y="228" font-family="'Cormorant Garamond', Georgia, serif"
+              font-size="19" fill="#0D4F5C" text-anchor="middle"
+              letter-spacing="6" font-weight="400">MENTARA</text>
+      </svg>
+      <div class="logo-meta">
+        <div class="meta-num">Concept 07</div>
+        <div class="meta-name">Book + Compass</div>
+      </div>
+    </div>
+
+  </div><!-- /logo-row -->
+
+
+  <!-- ═══════════════════════════════════════════
+       DARK / ON TEAL
+  ════════════════════════════════════════════ -->
+  <div class="spacer-lg">
+    <div class="section-label" style="margin-top:0;">On Teal</div>
+  </div>
+  <div class="dark-row">
+
+    <!-- 01 Dark -->
+    <div class="dark-card">
+      <svg width="155" height="235" viewBox="0 0 180 270" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <polygon points="90,37 103,82 147,95 103,108 77,108 33,95 77,82" fill="white"/>
+        <polygon points="103,108 90,184 77,108" fill="#C98B30"/>
+        <circle cx="90" cy="95" r="17" fill="white"/>
+        <circle cx="90" cy="95" r="7" fill="#C98B30"/>
+        <text x="90" y="234" font-family="'Cormorant Garamond', Georgia, serif"
+              font-size="19" fill="white" text-anchor="middle"
+              letter-spacing="6" font-weight="400">MENTARA</text>
+      </svg>
+    </div>
+
+    <!-- 02 Dark -->
+    <div class="dark-card">
+      <svg width="166" height="235" viewBox="0 0 200 270" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M28,174 L28,68 L100,136 L172,68 L172,174"
+              stroke="white" stroke-width="22"
+              stroke-linecap="butt" stroke-linejoin="miter" fill="none"/>
+        <path d="M28,68 C28,6 172,6 172,68"
+              stroke="#C98B30" stroke-width="18" fill="none" stroke-linecap="round"/>
+        <circle cx="28"  cy="68" r="11" fill="#C98B30"/>
+        <circle cx="172" cy="68" r="11" fill="#C98B30"/>
+        <text x="100" y="234" font-family="'Cormorant Garamond', Georgia, serif"
+              font-size="19" fill="white" text-anchor="middle"
+              letter-spacing="6" font-weight="400">MENTARA</text>
+      </svg>
+    </div>
+
+    <!-- 07 Dark -->
+    <div class="dark-card">
+      <svg width="155" height="235" viewBox="0 0 180 270" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Pages in white -->
+        <path d="M90,78 L14,95 L14,162 L90,162 Z" fill="white" opacity="0.92"/>
+        <path d="M90,78 L166,95 L166,162 L90,162 Z" fill="white" opacity="0.58"/>
+        <!-- Page lines on teal background (teal on white) -->
+        <line x1="23" y1="113" x2="82" y2="111" stroke="#0D4F5C" stroke-width="1.5" opacity="0.18"/>
+        <line x1="23" y1="123" x2="82" y2="121" stroke="#0D4F5C" stroke-width="1.5" opacity="0.18"/>
+        <line x1="23" y1="133" x2="82" y2="131" stroke="#0D4F5C" stroke-width="1.5" opacity="0.18"/>
+        <line x1="23" y1="143" x2="82" y2="141" stroke="#0D4F5C" stroke-width="1.5" opacity="0.18"/>
+        <line x1="98" y1="111" x2="157" y2="113" stroke="#0D4F5C" stroke-width="1.5" opacity="0.18"/>
+        <line x1="98" y1="121" x2="157" y2="123" stroke="#0D4F5C" stroke-width="1.5" opacity="0.18"/>
+        <line x1="98" y1="131" x2="157" y2="133" stroke="#0D4F5C" stroke-width="1.5" opacity="0.18"/>
+        <line x1="98" y1="141" x2="157" y2="143" stroke="#0D4F5C" stroke-width="1.5" opacity="0.18"/>
+        <line x1="90" y1="72" x2="90" y2="165" stroke="rgba(255,255,255,0.35)" stroke-width="4"/>
+        <path d="M90,24 L103,57 L96,57 L96,78 L84,78 L84,57 L77,57 Z" fill="#C98B30"/>
+        <circle cx="90" cy="162" r="7" fill="#C98B30"/>
+        <text x="90" y="228" font-family="'Cormorant Garamond', Georgia, serif"
+              font-size="19" fill="white" text-anchor="middle"
+              letter-spacing="6" font-weight="400">MENTARA</text>
+      </svg>
+    </div>
+
+  </div><!-- /dark-row -->
+
+
+  <!-- ═══════════════════════════════════════════
+       APP ICON SCALE (mark only, 64 × 64)
+  ════════════════════════════════════════════ -->
+  <div class="spacer-sm">
+    <div class="section-label" style="margin-top:0;">App Icon Scale</div>
+  </div>
+  <div class="icon-row">
+
+    <!-- 01 Icon -->
+    <div class="icon-card">
+      <div class="icon-inner">
+        <div class="icon-bg-white">
+          <svg width="44" height="44" viewBox="0 0 180 190" fill="none">
+            <polygon points="90,20 103,72 147,85 103,98 77,98 33,85 77,72" fill="#0D4F5C"/>
+            <polygon points="103,98 90,174 77,98" fill="#C98B30"/>
+            <circle cx="90" cy="85" r="17" fill="#0D4F5C"/>
+            <circle cx="90" cy="85" r="7"  fill="#C98B30"/>
+          </svg>
+        </div>
+        <div class="icon-bg-teal">
+          <svg width="44" height="44" viewBox="0 0 180 190" fill="none">
+            <polygon points="90,20 103,72 147,85 103,98 77,98 33,85 77,72" fill="white"/>
+            <polygon points="103,98 90,174 77,98" fill="#C98B30"/>
+            <circle cx="90" cy="85" r="17" fill="white"/>
+            <circle cx="90" cy="85" r="7"  fill="#C98B30"/>
+          </svg>
+        </div>
+      </div>
+      <div class="icon-label">Concept 01 — Guiding Star</div>
+    </div>
+
+    <!-- 02 Icon -->
+    <div class="icon-card">
+      <div class="icon-inner">
+        <div class="icon-bg-white">
+          <svg width="44" height="44" viewBox="0 0 200 200" fill="none">
+            <path d="M28,174 L28,68 L100,136 L172,68 L172,174"
+                  stroke="#0D4F5C" stroke-width="22" stroke-linecap="butt" stroke-linejoin="miter" fill="none"/>
+            <path d="M28,68 C28,6 172,6 172,68"
+                  stroke="#C98B30" stroke-width="18" fill="none" stroke-linecap="round"/>
+            <circle cx="28"  cy="68" r="11" fill="#C98B30"/>
+            <circle cx="172" cy="68" r="11" fill="#C98B30"/>
+          </svg>
+        </div>
+        <div class="icon-bg-teal">
+          <svg width="44" height="44" viewBox="0 0 200 200" fill="none">
+            <path d="M28,174 L28,68 L100,136 L172,68 L172,174"
+                  stroke="white" stroke-width="22" stroke-linecap="butt" stroke-linejoin="miter" fill="none"/>
+            <path d="M28,68 C28,6 172,6 172,68"
+                  stroke="#C98B30" stroke-width="18" fill="none" stroke-linecap="round"/>
+            <circle cx="28"  cy="68" r="11" fill="#C98B30"/>
+            <circle cx="172" cy="68" r="11" fill="#C98B30"/>
+          </svg>
+        </div>
+      </div>
+      <div class="icon-label">Concept 02 — Bridge Lettermark</div>
+    </div>
+
+    <!-- 07 Icon -->
+    <div class="icon-card">
+      <div class="icon-inner">
+        <div class="icon-bg-white">
+          <svg width="44" height="44" viewBox="0 0 180 190" fill="none">
+            <path d="M90,40 L14,56 L14,150 L90,150 Z" fill="#0D4F5C"/>
+            <path d="M90,40 L166,56 L166,150 L90,150 Z" fill="#0D4F5C" opacity="0.65"/>
+            <line x1="90" y1="34" x2="90" y2="152" stroke="#0A3B46" stroke-width="4"/>
+            <path d="M90,5 L103,38 L96,38 L96,54 L84,54 L84,38 L77,38 Z" fill="#C98B30"/>
+            <circle cx="90" cy="150" r="7" fill="#C98B30"/>
+          </svg>
+        </div>
+        <div class="icon-bg-teal">
+          <svg width="44" height="44" viewBox="0 0 180 190" fill="none">
+            <path d="M90,40 L14,56 L14,150 L90,150 Z" fill="white" opacity="0.92"/>
+            <path d="M90,40 L166,56 L166,150 L90,150 Z" fill="white" opacity="0.55"/>
+            <line x1="90" y1="34" x2="90" y2="152" stroke="rgba(255,255,255,0.35)" stroke-width="4"/>
+            <path d="M90,5 L103,38 L96,38 L96,54 L84,54 L84,38 L77,38 Z" fill="#C98B30"/>
+            <circle cx="90" cy="150" r="7" fill="#C98B30"/>
+          </svg>
+        </div>
+      </div>
+      <div class="icon-label">Concept 07 — Book + Compass</div>
+    </div>
+
+  </div><!-- /icon-row -->
+
+</body>
+</html>

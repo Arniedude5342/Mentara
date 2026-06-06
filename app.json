@@ -1,0 +1,69 @@
+{
+  "expo": {
+    "name": "Mentara",
+    "slug": "mentara",
+    "owner": "Mentarasupport",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": ["mentara", "com.googleusercontent.apps.737315950959-32fidg7e7pt0lrtehbbhukru6i7kodg9"],
+    "userInterfaceStyle": "light",
+    "icon": "./assets/icon.png",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0D4F5C"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.mentara.app",
+      "buildNumber": "1",
+      "usesAppleSignIn": true,
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "Allow Mentara to access your photo library to update your profile picture.",
+        "NSCameraUsageDescription": "Allow Mentara to access your camera to take a profile photo.",
+        "NSMicrophoneUsageDescription": "Allow Mentara to record your post-call reflections.",
+        "ITSAppUsesNonExemptEncryption": false,
+        "UIBackgroundModes": ["fetch", "remote-notification"]
+      }
+    },
+    "android": {
+      "package": "com.mentara.app",
+      "versionCode": 1,
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ]
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      "expo-apple-authentication",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow Mentara to access your photos."
+        }
+      ],
+      "expo-web-browser",
+      "expo-font",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#0D4F5C",
+          "sounds": []
+        }
+      ],
+      "expo-asset"
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "REPLACE_WITH_REAL_EAS_PROJECT_UUID"
+      }
+    }
+  }
+}
