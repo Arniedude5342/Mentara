@@ -188,7 +188,7 @@ export default function LandingScreen() {
           <View style={styles.nav}>
             <Logo size="md" light />
             <TouchableOpacity
-              onPress={() => Linking.openURL('https://mentara.me/about').catch(() => {})}
+              onPress={() => Linking.openURL('https://mentara.me/#about').catch(() => {})}
               style={styles.aboutBtn}
               accessibilityLabel="About Mentara"
               accessibilityRole="button"
@@ -454,7 +454,7 @@ export default function LandingScreen() {
           <Logo size="sm" />
           <Text style={styles.footerText}>© 2026 Mentara. All rights reserved.</Text>
           <View style={styles.footerLinks}>
-            <TouchableOpacity onPress={() => Linking.openURL('https://mentara.me/about').catch(() => {})} accessibilityLabel="About Mentara" accessibilityRole="button">
+            <TouchableOpacity onPress={() => Linking.openURL('https://mentara.me/#about').catch(() => {})} accessibilityLabel="About Mentara" accessibilityRole="button">
               <Text style={styles.footerLink}>About</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={() => router.push('/terms')} accessibilityLabel="Terms of Service" accessibilityRole="button">
