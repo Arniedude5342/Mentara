@@ -161,7 +161,7 @@ nav {
 .badge {
   display: inline-flex; align-items: center; gap: 8px;
   background: #fff; color: var(--teal);
-  padding: 8px 15px; border-radius: 999px; font-size: 13px; font-weight: 600; margin-bottom: 24px;
+  padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; margin-bottom: 24px;
   border: 1px solid var(--line); box-shadow: var(--shadow-sm);
 }
 .badge .badge-apple { width: 13px; height: 13px; color: var(--teal); margin-top: -2px; }
@@ -348,9 +348,27 @@ section { padding: 80px 0; position: relative; }
 .mission-band .founding-pill { background: rgba(255,255,255,.16); color: #fff; }
 .mission-band h2 { color: #fff; font-size: clamp(24px, 3.4vw, 34px); margin-bottom: 12px; max-width: 26ch; }
 .mission-band p { color: rgba(255,255,255,.82); font-size: 17px; max-width: 56ch; }
-.about-copy { max-width: 780px; margin-bottom: 30px; }
+.about-copy { max-width: 780px; margin-bottom: 28px; }
 .about-copy p { color: var(--muted); font-size: 17px; margin-bottom: 16px; }
 #about .mission-band { margin-bottom: 30px; }
+
+/* Founder note */
+.founder {
+  display: flex; gap: 24px; align-items: flex-start; max-width: 840px;
+  background: var(--card); border: 1px solid var(--line-strong); border-radius: 12px;
+  padding: 28px 30px; box-shadow: var(--shadow-sm); margin-bottom: 30px;
+}
+.founder-avatar {
+  flex: 0 0 auto; width: 76px; height: 76px; border-radius: 14px; overflow: hidden;
+  background: linear-gradient(135deg, var(--teal), var(--teal-deep)); color: #fff;
+  display: grid; place-items: center; font-family: 'Fraunces', serif; font-weight: 600;
+  font-size: 26px; letter-spacing: 1px; box-shadow: 0 6px 16px rgba(13,79,92,.22);
+}
+.founder-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.founder-quote { font-size: 16.5px; color: var(--ink); line-height: 1.62; margin-bottom: 14px; }
+.founder-attr { display: flex; flex-direction: column; gap: 1px; }
+.founder-name { font-family: 'Fraunces', serif; font-weight: 600; font-size: 17px; color: var(--teal); }
+.founder-role { font-size: 13px; color: var(--muted); font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
 
 /* ── Footer ── */
 footer { padding: 48px 0; border-top: 1px solid var(--line); margin-top: 12px; }
@@ -391,6 +409,7 @@ footer { padding: 48px 0; border-top: 1px solid var(--line); margin-top: 12px; }
   .steps, .features { grid-template-columns: 1fr; }
   .feature { border-right: none; border-bottom: 1px solid var(--line); padding: 30px 26px; }
   .feature:last-child { border-bottom: none; }
+  .founder { flex-direction: column; gap: 18px; padding: 26px 24px; }
   .hero { padding: 56px 0 48px; }
   section { padding: 58px 0; }
   .cta-band { padding: 44px 24px; }
