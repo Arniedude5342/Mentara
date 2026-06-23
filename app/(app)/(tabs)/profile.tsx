@@ -482,7 +482,7 @@ export default function ProfileScreen() {
               <ActionRow
                 icon="help-circle-outline"
                 label="About Mentara"
-                onPress={() => router.push('/about')}
+                onPress={() => Linking.openURL('https://mentara.me/about').catch(() => {})}
               />
               <ActionRow
                 icon="shield-outline"
