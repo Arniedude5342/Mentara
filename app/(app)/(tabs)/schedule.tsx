@@ -17,7 +17,9 @@ import {
   respondToMeetingInviteInApp,
 } from '@/lib/meetings';
 import { isGCalAuthorized, authorizeGoogleCalendar, createGCalEvent } from '@/lib/googleCalendar';
-import { ActionItem } from '@/lib/types';
+import { ActionItem, Meeting } from '@/lib/types';
+import ScheduleCallCard from '@/components/ScheduleCallCard';
+import PostMeetingRatingCard from '@/components/PostMeetingRatingCard';
 
 // ── Platform metadata ─────────────────────────────────────────
 const PLATFORM_META: Record<string, { label: string; color: string }> = {
@@ -356,6 +358,9 @@ export default function MeetingsScreen() {
   const [notesModal, setNotesModal] = useState<{ meeting: any; text: string } | null>(null);
   const [savingNotes, setSavingNotes] = useState(false);
 
+  // Track which past meetings have had ratings submitted this session
+  const [submittedRatingIds, setSubmittedRatingIds] = useState<Set<string>>(new Set());
+
   // Add action item input
   const [newItem, setNewItem] = useState('');
   const [addingItem, setAddingItem] = useState(false);
@@ -481,6 +486,21 @@ export default function MeetingsScreen() {
   const openItems = actionItems.filter((i) => !i.completed);
   const doneItems = actionItems.filter((i) => i.completed);
 
+  // Derive student/mentor IDs from the first meeting available
+  const refMeeting = meetings[0] ?? null;
+  const studentId = refMeeting?.student_id ?? null;
+  const mentorId = refMeeting?.mentor_id ?? null;
+  const showScheduleCard = past.length > 0 && upcoming.length === 0 && !!conversationId && !!studentId && !!mentorId;
+
+  const handleRatingSubmitted = (meetingId: string) => {
+    setSubmittedRatingIds((prev) => new Set([...prev, meetingId]));
+    setMeetings((prev) => prev.map((m) => m.id === meetingId ? { ...m, occurred: true } : m));
+  };
+
+  const handleMeetingScheduled = (meeting: Meeting) => {
+    setMeetings((prev) => [meeting, ...prev]);
+  };
+
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
       {/* ── Header ─────────────────────────────────────────────── */}
@@ -591,6 +611,26 @@ export default function MeetingsScreen() {
               </View>
             )}
 
+            {/* ── Schedule next meeting ────────────────────── */}
+            {showScheduleCard && (
+              <View style={styles.section}>
+                <View style={styles.sectionLabelRow}>
+                  <View style={[styles.sectionDot, { backgroundColor: roleColor }]} />
+                  <Text style={[styles.sectionLabel, { color: roleColor }]}>NEXT MEETING</Text>
+                </View>
+                <View style={styles.scheduleCardWrap}>
+                  <ScheduleCallCard
+                    conversationId={conversationId!}
+                    studentId={studentId!}
+                    mentorId={mentorId!}
+                    scheduledBy={user?.id ?? ''}
+                    isFirstMeeting={false}
+                    onScheduled={handleMeetingScheduled}
+                  />
+                </View>
+              </View>
+            )}
+
             {/* ── Past meetings ─────────────────────────────── */}
             {past.length > 0 && (
               <View style={styles.section}>
@@ -598,9 +638,29 @@ export default function MeetingsScreen() {
                   <View style={[styles.sectionDot, { backgroundColor: Colors.gray400 }]} />
                   <Text style={[styles.sectionLabel, { color: Colors.gray500 }]}>PAST MEETINGS</Text>
                 </View>
-                {past.map((m) => (
-                  <MeetingCard key={m.id} meeting={m} role={role} userId={user?.id ?? ''} onNotes={openNotes} onRespond={handleRespond} />
-                ))}
+                {past.map((m) => {
+                  const otherUser = role === 'student' ? m.mentor : m.student;
+                  // Only confirmed meetings that actually happened can be rated —
+                  // declined or never-confirmed (pending) past meetings should not prompt for feedback.
+                  const needsRating = m.invite_status === 'confirmed' && !m.occurred && !submittedRatingIds.has(m.id);
+                  return (
+                    <React.Fragment key={m.id}>
+                      <MeetingCard meeting={m} role={role} userId={user?.id ?? ''} onNotes={openNotes} onRespond={handleRespond} />
+                      {needsRating && user && otherUser && (
+                        <View style={styles.ratingCardWrap}>
+                          <PostMeetingRatingCard
+                            meetingId={m.id}
+                            raterId={user.id}
+                            rateeId={role === 'student' ? m.mentor_id : m.student_id}
+                            rateeName={otherUser.full_name ?? ''}
+                            isStudent={isStudent}
+                            onSubmitted={() => handleRatingSubmitted(m.id)}
+                          />
+                        </View>
+                      )}
+                    </React.Fragment>
+                  );
+                })}
               </View>
             )}
 
@@ -861,6 +921,10 @@ const styles = StyleSheet.create({
     fontSize: 10, fontWeight: '700', color: Colors.gray400,
     letterSpacing: 1.2, paddingHorizontal: 14, paddingTop: 10, paddingBottom: 4,
   },
+
+  // ── Schedule & rating card wrappers ───────────────────────
+  scheduleCardWrap: { marginHorizontal: -12 },
+  ratingCardWrap: { marginHorizontal: -16, marginTop: -2 },
 
   // ── Empty state ────────────────────────────────────────────
   emptyContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32, gap: 16 },

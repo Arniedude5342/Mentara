@@ -5,7 +5,10 @@
     "owner": "Mentarasupport",
     "version": "1.0.0",
     "orientation": "portrait",
-    "scheme": ["mentara", "com.googleusercontent.apps.737315950959-32fidg7e7pt0lrtehbbhukru6i7kodg9"],
+    "scheme": [
+      "mentara",
+      "com.googleusercontent.apps.737315950959-32fidg7e7pt0lrtehbbhukru6i7kodg9"
+    ],
     "userInterfaceStyle": "light",
     "icon": "./assets/icon.png",
     "splash": {
@@ -23,7 +26,10 @@
         "NSCameraUsageDescription": "Allow Mentara to access your camera to take a profile photo.",
         "NSMicrophoneUsageDescription": "Allow Mentara to record your post-call reflections.",
         "ITSAppUsesNonExemptEncryption": false,
-        "UIBackgroundModes": ["fetch", "remote-notification"]
+        "UIBackgroundModes": [
+          "fetch",
+          "remote-notification"
+        ]
       }
     },
     "android": {
@@ -57,7 +63,23 @@
           "sounds": []
         }
       ],
-      "expo-asset"
+      "expo-asset",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/logo.png",
+          "imageWidth": 180,
+          "resizeMode": "contain",
+          "backgroundColor": "#0D4F5C"
+        }
+      ],
+      [
+        "@sentry/react-native",
+        {
+          "organization": "REPLACE_WITH_SENTRY_ORG_SLUG",
+          "project": "REPLACE_WITH_SENTRY_PROJECT_SLUG"
+        }
+      ]
     ],
     "extra": {
       "router": {},

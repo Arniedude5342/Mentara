@@ -31,7 +31,7 @@ const TEAM_VALUES = [
   {
     icon: 'shield-checkmark-outline' as const,
     title: 'Trust',
-    desc: 'Every interaction on Mentara is built on verified credentials and mutual respect.',
+    desc: 'Every interaction on Mentara is built on verified mentors and mutual respect.',
     color: Colors.success,
   },
 ];

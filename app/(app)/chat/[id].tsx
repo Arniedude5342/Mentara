@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity,
-  KeyboardAvoidingView, Platform, ActivityIndicator, Alert, Linking,
+  KeyboardAvoidingView, Platform, ActivityIndicator, Alert, Modal, ScrollView,
 } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,9 +18,32 @@ import RescheduleCard from '@/components/RescheduleCard';
 import Avatar from '@/components/ui/Avatar';
 import { Colors, Radius, Shadow, Fonts, Typography } from '@/constants/theme';
 import { isGCalAuthorized, authorizeGoogleCalendar, createGCalEvent } from '@/lib/googleCalendar';
-import { supabase, getConversationParticipants, markConversationRead, getVoiceMemoForMeeting, blockUser } from '@/lib/supabase';
+import { supabase, getConversationParticipants, markConversationRead, getVoiceMemoForMeeting, blockUser, submitReport, type ReportReason } from '@/lib/supabase';
 import { getMeetingsForConversation, getPendingReschedule, updateMeetingLink } from '@/lib/meetings';
 import { Meeting, RescheduleRequest } from '@/lib/types';
+
+function isSameDay(a: Date, b: Date): boolean {
+  return a.getFullYear() === b.getFullYear()
+    && a.getMonth() === b.getMonth()
+    && a.getDate() === b.getDate();
+}
+
+function formatDateStamp(timestamp: string): string {
+  const d = new Date(timestamp);
+  if (isNaN(d.getTime())) return '';
+  const now = new Date();
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  if (isSameDay(d, now)) return 'Today';
+  if (isSameDay(d, yesterday)) return 'Yesterday';
+  const sixDaysAgo = new Date(now);
+  sixDaysAgo.setDate(now.getDate() - 6);
+  if (d > sixDaysAgo) return d.toLocaleDateString([], { weekday: 'long' });
+  if (d.getFullYear() === now.getFullYear()) {
+    return d.toLocaleDateString([], { month: 'long', day: 'numeric' });
+  }
+  return d.toLocaleDateString([], { month: 'long', day: 'numeric', year: 'numeric' });
+}
 
 export default function ChatScreen() {
   const rawParams = useLocalSearchParams<{ id: string }>();
@@ -38,6 +61,10 @@ export default function ChatScreen() {
   const [pendingReschedule, setPendingReschedule] = useState<RescheduleRequest | null>(null);
   const [editingLink, setEditingLink] = useState(false);
   const [linkInput, setLinkInput] = useState('');
+  const [reportVisible, setReportVisible] = useState(false);
+  const [reportReason, setReportReason] = useState<ReportReason | null>(null);
+  const [reportDetails, setReportDetails] = useState('');
+  const [reportSubmitting, setReportSubmitting] = useState(false);
   const flatListRef = useRef<FlatList>(null);
   const mountedRef = useRef(true);
 
@@ -136,17 +163,9 @@ export default function ChatScreen() {
   );
   const isFirstMeeting = meetings.length === 0;
 
-  // Show schedule card when: no upcoming meeting, AND either never had a meeting
-  // or the most recent meeting was 7+ days ago (time for a new monthly call)
-  const lastMeeting = meetings.length > 0
-    ? meetings.reduce((latest, m) =>
-        new Date(m.scheduled_at) > new Date(latest.scheduled_at) ? m : latest
-      )
-    : null;
-  const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
-  const showScheduleCard =
-    !upcomingMeeting &&
-    (!lastMeeting || now.getTime() - new Date(lastMeeting.scheduled_at).getTime() >= sevenDaysMs);
+  // Show schedule card whenever there's no upcoming meeting — i.e., as soon as
+  // the last meeting has passed (or there has never been one).
+  const showScheduleCard = !upcomingMeeting;
 
   const isStudent = profile?.role === 'student';
   const studentId = isStudent ? (user?.id ?? '') : (otherUser?.id ?? '');
@@ -188,13 +207,41 @@ export default function ChatScreen() {
     );
   };
 
+  const REPORT_REASONS: { key: ReportReason; label: string }[] = [
+    { key: 'harassment', label: 'Harassment or bullying' },
+    { key: 'inappropriate_content', label: 'Inappropriate or sexual content' },
+    { key: 'safety_concern', label: 'Safety concern / makes me uncomfortable' },
+    { key: 'spam', label: 'Spam or scam' },
+    { key: 'impersonation', label: 'Impersonation / fake profile' },
+    { key: 'other', label: 'Something else' },
+  ];
+
   const handleReportUser = () => {
     if (!otherUser) return;
-    const subject = encodeURIComponent(`Report: User ${otherUser.id}`);
-    const body = encodeURIComponent(
-      `I want to report this user:\n\nName: ${otherUser.full_name ?? 'Unknown'}\nUser ID: ${otherUser.id}\nConversation ID: ${conversationId}\n\nReason:\n[Please describe what happened]`
+    setReportReason(null);
+    setReportDetails('');
+    setReportVisible(true);
+  };
+
+  const handleSubmitReport = async () => {
+    if (!user || !reportReason || reportSubmitting) return;
+    setReportSubmitting(true);
+    const ok = await submitReport({
+      reporterId: user.id,
+      reportedUserId: otherUser?.id ?? null,
+      conversationId,
+      reason: reportReason,
+      details: reportDetails,
+    });
+    if (!mountedRef.current) return;
+    setReportSubmitting(false);
+    setReportVisible(false);
+    Alert.alert(
+      ok ? 'Report submitted' : 'Couldn’t submit',
+      ok
+        ? 'Thanks for flagging this. Our team reviews reports within 24 hours and takes action on violations. You can also block this person.'
+        : 'Something went wrong. Please try again, or email mentarasupport@gmail.com.',
     );
-    Linking.openURL(`mailto:mentarasupport@gmail.com?subject=${subject}&body=${body}`).catch(() => {});
   };
 
   const handleMoreOptions = () => {
@@ -437,7 +484,7 @@ export default function ChatScreen() {
             />
           )}
 
-          {/* Schedule call (no upcoming meeting, 7+ days since last) */}
+          {/* Schedule call (shown whenever there's no upcoming meeting) */}
           {showScheduleCard && !pendingVoiceMemo && !pendingCheckinMeeting && conversationId && studentId && mentorId && (
             <ScheduleCallCard
               conversationId={conversationId}
@@ -497,16 +544,17 @@ export default function ChatScreen() {
               const showTime = !prevMsg || (
                 new Date(item.created_at).getTime() - new Date(prevMsg.created_at).getTime() > 5 * 60 * 1000
               );
-              if ((item as any).sender_type === 'bot') {
-                return (
-                  <BotMessageBubble
-                    content={item.content}
-                    timestamp={item.created_at}
-                    showTime={showTime}
-                  />
-                );
-              }
-              return (
+              const showDateStamp = !prevMsg || !isSameDay(
+                new Date(item.created_at),
+                new Date(prevMsg.created_at),
+              );
+              const bubble = (item as any).sender_type === 'bot' ? (
+                <BotMessageBubble
+                  content={item.content}
+                  timestamp={item.created_at}
+                  showTime={showTime}
+                />
+              ) : (
                 <MessageBubble
                   content={item.content}
                   isMine={item.sender_id === user?.id}
@@ -516,6 +564,18 @@ export default function ChatScreen() {
                   senderId={item.sender_id}
                   conversationId={conversationId}
                 />
+              );
+              return (
+                <>
+                  {showDateStamp && (
+                    <View style={styles.dateStampRow}>
+                      <View style={styles.dateStampPill}>
+                        <Text style={styles.dateStampText}>{formatDateStamp(item.created_at)}</Text>
+                      </View>
+                    </View>
+                  )}
+                  {bubble}
+                </>
               );
             }}
             contentContainerStyle={styles.messageList}
@@ -554,6 +614,66 @@ export default function ChatScreen() {
           </View>
         </View>
       </KeyboardAvoidingView>
+
+      {/* ── Report modal ─────────────────────────────────────── */}
+      <Modal visible={reportVisible} transparent animationType="slide" onRequestClose={() => setReportVisible(false)}>
+        <View style={styles.reportOverlay}>
+          <TouchableOpacity
+            style={styles.reportBackdrop}
+            activeOpacity={1}
+            onPress={() => setReportVisible(false)}
+            accessibilityLabel="Close report"
+            accessibilityRole="button"
+          />
+          <View style={styles.reportSheet}>
+            <View style={styles.reportHandle} />
+            <Text style={styles.reportTitle}>Report {otherUser?.full_name ?? 'user'}</Text>
+            <Text style={styles.reportSub}>
+              Your report is private. We review every report within 24 hours and take action on violations.
+            </Text>
+            <ScrollView style={{ maxHeight: 340 }} keyboardShouldPersistTaps="handled">
+              {REPORT_REASONS.map((r) => (
+                <TouchableOpacity
+                  key={r.key}
+                  style={[styles.reasonRow, reportReason === r.key && styles.reasonRowActive]}
+                  onPress={() => setReportReason(r.key)}
+                  accessibilityRole="button"
+                  accessibilityLabel={r.label}
+                >
+                  <Ionicons
+                    name={reportReason === r.key ? 'radio-button-on' : 'radio-button-off'}
+                    size={20}
+                    color={reportReason === r.key ? Colors.primary : Colors.gray400}
+                  />
+                  <Text style={styles.reasonText}>{r.label}</Text>
+                </TouchableOpacity>
+              ))}
+              <TextInput
+                style={styles.reportInput}
+                value={reportDetails}
+                onChangeText={setReportDetails}
+                placeholder="Add details (optional)"
+                placeholderTextColor={Colors.gray400}
+                multiline
+                maxLength={2000}
+                textAlignVertical="top"
+                accessibilityLabel="Report details"
+              />
+            </ScrollView>
+            <TouchableOpacity
+              style={[styles.reportSubmit, (!reportReason || reportSubmitting) && styles.reportSubmitDisabled]}
+              onPress={handleSubmitReport}
+              disabled={!reportReason || reportSubmitting}
+              accessibilityRole="button"
+              accessibilityLabel="Submit report"
+            >
+              {reportSubmitting
+                ? <ActivityIndicator size="small" color={Colors.white} />
+                : <Text style={styles.reportSubmitText}>Submit report</Text>}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -644,6 +764,26 @@ const styles = StyleSheet.create({
   // ── Message list ──────────────────────────────────────────────────
   messageList: { paddingVertical: 12, paddingHorizontal: 4 },
 
+  dateStampRow: {
+    alignItems: 'center',
+    marginVertical: 12,
+    paddingHorizontal: 16,
+  },
+  dateStampPill: {
+    backgroundColor: Colors.gray100,
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: Colors.gray200,
+  },
+  dateStampText: {
+    fontFamily: Fonts.sansSemiBold,
+    fontSize: 11,
+    color: Colors.gray500,
+    letterSpacing: 0.4,
+  },
+
   // ── Cards section (above messages) ───────────────────────────────
   cardsSection: {
     backgroundColor: Colors.white,
@@ -677,4 +817,37 @@ const styles = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   sendBtnDisabled: { backgroundColor: Colors.gray300 },
+
+  // ── Report modal ──────────────────────────────────────────────────
+  reportOverlay: { flex: 1, justifyContent: 'flex-end' },
+  reportBackdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.45)' },
+  reportSheet: {
+    backgroundColor: Colors.white,
+    borderTopLeftRadius: Radius.xxl, borderTopRightRadius: Radius.xxl,
+    paddingHorizontal: 20, paddingTop: 10, paddingBottom: 28, gap: 8,
+  },
+  reportHandle: {
+    alignSelf: 'center', width: 38, height: 4, borderRadius: 2,
+    backgroundColor: Colors.gray200, marginBottom: 8,
+  },
+  reportTitle: { fontFamily: Fonts.sansBold, fontSize: 18, color: Colors.dark },
+  reportSub: { fontFamily: Fonts.sans, fontSize: 13, color: Colors.gray500, lineHeight: 19, marginBottom: 6 },
+  reasonRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    paddingVertical: 13, paddingHorizontal: 12, borderRadius: Radius.md,
+    borderWidth: 1, borderColor: Colors.border, marginBottom: 8,
+  },
+  reasonRowActive: { borderColor: Colors.primary, backgroundColor: Colors.primaryLight },
+  reasonText: { flex: 1, fontFamily: Fonts.sansMedium, fontSize: 14, color: Colors.dark },
+  reportInput: {
+    backgroundColor: Colors.gray100, borderRadius: Radius.md,
+    borderWidth: 1, borderColor: Colors.border,
+    padding: 12, fontSize: 14, color: Colors.dark, minHeight: 80, marginTop: 4,
+  },
+  reportSubmit: {
+    backgroundColor: Colors.primary, borderRadius: Radius.md,
+    paddingVertical: 14, alignItems: 'center', marginTop: 12,
+  },
+  reportSubmitDisabled: { opacity: 0.5 },
+  reportSubmitText: { fontFamily: Fonts.sansBold, fontSize: 15, color: Colors.white },
 });

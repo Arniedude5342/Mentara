@@ -54,6 +54,8 @@ export default function OnboardingScreen() {
   const [mentorAvailability, setMentorAvailability] = useState<string[]>([]);
   const [mentoringStyle, setMentoringStyle] = useState('');
   const [linkedInUrl, setLinkedInUrl] = useState('');
+  const [ageBracket, setAgeBracket] = useState<'adult' | 'minor' | null>(null);
+  const [guardianConsent, setGuardianConsent] = useState(false);
 
   const handleRetryProfile = async () => {
     if (retrying) return;
@@ -173,7 +175,12 @@ export default function OnboardingScreen() {
     }
     setLoading(true);
     try {
-      await updateProfile(user.id, { bio: bio.trim(), location: location.trim(), onboarding_complete: true });
+      await updateProfile(user.id, {
+        bio: bio.trim(),
+        location: location.trim(),
+        onboarding_complete: true,
+        guardian_consent_at: ageBracket === 'minor' ? new Date().toISOString() : null,
+      });
 
       // Apply any pending referral code (captured from deep link before registration)
       try {
@@ -224,7 +231,14 @@ export default function OnboardingScreen() {
 
   const studentSteps = [
     // Step 0: Age gate
-    <AgeGateStep key="age" onBlock={() => Alert.alert('Age Requirement', 'Mentara is for users 13 and older.', [{ text: 'OK' }])} />,
+    <AgeGateStep
+      key="age"
+      bracket={ageBracket}
+      onPickBracket={setAgeBracket}
+      guardianConsent={guardianConsent}
+      onConsentChange={setGuardianConsent}
+      onBlock={() => Alert.alert('Age Requirement', 'Mentara is for users 13 and older.', [{ text: 'OK' }])}
+    />,
 
     // Step 1: Welcome + ToS
     <WelcomeStep key="welcome" isStudent name={profile?.full_name} tosAccepted={tosAccepted} onTosChange={setTosAccepted} />,
@@ -356,7 +370,14 @@ export default function OnboardingScreen() {
 
   const mentorSteps = [
     // Step 0: Age gate
-    <AgeGateStep key="age" onBlock={() => Alert.alert('Age Requirement', 'Mentara is for users 13 and older.', [{ text: 'OK' }])} />,
+    <AgeGateStep
+      key="age"
+      bracket={ageBracket}
+      onPickBracket={setAgeBracket}
+      guardianConsent={guardianConsent}
+      onConsentChange={setGuardianConsent}
+      onBlock={() => Alert.alert('Age Requirement', 'Mentara is for users 13 and older.', [{ text: 'OK' }])}
+    />,
 
     // Step 1: Welcome + ToS
     <WelcomeStep key="welcome" isStudent={false} name={profile?.full_name} tosAccepted={tosAccepted} onTosChange={setTosAccepted} />,
@@ -512,6 +533,7 @@ export default function OnboardingScreen() {
   const isLastStep = step === totalSteps - 1;
   const isAgeGate = step === 0;
   const isFirstStep = step === 1;
+  const ageGateValid = ageBracket === 'adult' || (ageBracket === 'minor' && guardianConsent);
   const progress = (step + 1) / totalSteps;
 
   return (
@@ -540,7 +562,7 @@ export default function OnboardingScreen() {
 
       <View style={[styles.footer, { paddingBottom: insets.bottom + 16 }]}>
         {isAgeGate ? (
-          <Button title="I am 13 or older — Continue" onPress={goNext} color={roleColor} />
+          <Button title="Continue" onPress={goNext} color={roleColor} disabled={!ageGateValid} />
         ) : isFirstStep ? (
           <Button
             title="Let's Get Started"
@@ -563,7 +585,15 @@ export default function OnboardingScreen() {
   );
 }
 
-function AgeGateStep({ onBlock }: { onBlock: () => void }) {
+function AgeGateStep({
+  bracket, onPickBracket, guardianConsent, onConsentChange, onBlock,
+}: {
+  bracket: 'adult' | 'minor' | null;
+  onPickBracket: (b: 'adult' | 'minor') => void;
+  guardianConsent: boolean;
+  onConsentChange: (v: boolean) => void;
+  onBlock: () => void;
+}) {
   return (
     <View style={styles.ageGateRoot}>
       <View style={styles.ageGateIcon}>
@@ -573,6 +603,45 @@ function AgeGateStep({ onBlock }: { onBlock: () => void }) {
       <Text style={styles.ageGateSub}>
         Mentara connects students with professional mentors. You must be 13 or older to use this app.
       </Text>
+
+      <View style={styles.ageBracketGroup}>
+        <TouchableOpacity
+          style={[styles.ageBracketBtn, bracket === 'adult' && styles.ageBracketBtnActive]}
+          onPress={() => onPickBracket('adult')}
+          accessibilityRole="button"
+          accessibilityLabel="I am 18 or older"
+        >
+          <Ionicons name={bracket === 'adult' ? 'radio-button-on' : 'radio-button-off'} size={20} color={bracket === 'adult' ? Colors.primary : Colors.gray400} />
+          <Text style={styles.ageBracketText}>I am 18 or older</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.ageBracketBtn, bracket === 'minor' && styles.ageBracketBtnActive]}
+          onPress={() => onPickBracket('minor')}
+          accessibilityRole="button"
+          accessibilityLabel="I am 13 to 17"
+        >
+          <Ionicons name={bracket === 'minor' ? 'radio-button-on' : 'radio-button-off'} size={20} color={bracket === 'minor' ? Colors.primary : Colors.gray400} />
+          <Text style={styles.ageBracketText}>I am 13–17</Text>
+        </TouchableOpacity>
+      </View>
+
+      {bracket === 'minor' && (
+        <TouchableOpacity
+          style={styles.consentRow}
+          onPress={() => onConsentChange(!guardianConsent)}
+          accessibilityRole="checkbox"
+          accessibilityState={{ checked: guardianConsent }}
+          accessibilityLabel="A parent or guardian has given me permission"
+        >
+          <View style={[styles.consentBox, guardianConsent && styles.consentBoxChecked]}>
+            {guardianConsent && <Ionicons name="checkmark" size={14} color={Colors.white} />}
+          </View>
+          <Text style={styles.consentText}>
+            A parent or guardian has given me permission to use Mentara and to communicate with mentors.
+          </Text>
+        </TouchableOpacity>
+      )}
+
       <TouchableOpacity
         style={styles.ageGateUnderLink}
         onPress={onBlock}
@@ -702,6 +771,28 @@ const styles = StyleSheet.create({
   ageGateUnderText: {
     fontSize: 13, color: Colors.gray400, textDecorationLine: 'underline',
   },
+  ageBracketGroup: { alignSelf: 'stretch', gap: 10, marginTop: 8 },
+  ageBracketBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    paddingHorizontal: 16, paddingVertical: 14,
+    borderRadius: Radius.md, borderWidth: 1.5, borderColor: Colors.gray200,
+    backgroundColor: Colors.white,
+  },
+  ageBracketBtnActive: { borderColor: Colors.primary, backgroundColor: Colors.primaryLight },
+  ageBracketText: { fontSize: 15, fontWeight: '600', color: Colors.dark },
+  consentRow: {
+    flexDirection: 'row', alignItems: 'flex-start', gap: 10,
+    alignSelf: 'stretch', marginTop: 4,
+    backgroundColor: Colors.primaryLight, borderRadius: Radius.md, padding: 14,
+    borderWidth: 1, borderColor: Colors.primaryGlow,
+  },
+  consentBox: {
+    width: 22, height: 22, borderRadius: 6,
+    borderWidth: 2, borderColor: Colors.primary,
+    alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1,
+  },
+  consentBoxChecked: { backgroundColor: Colors.primary },
+  consentText: { flex: 1, fontSize: 13, color: Colors.dark, lineHeight: 19 },
 
   // Welcome
   welcomeGrad: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32 },

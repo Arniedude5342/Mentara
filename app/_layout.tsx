@@ -28,6 +28,19 @@ import { supabase } from '@/lib/supabase';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import NetworkBanner from '@/components/NetworkBanner';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
+import * as Sentry from '@sentry/react-native';
+
+// Production error & crash reporting. Stays a no-op until EXPO_PUBLIC_SENTRY_DSN is set,
+// and only sends from release builds (never from local dev / Expo Go).
+const SENTRY_DSN = process.env.EXPO_PUBLIC_SENTRY_DSN;
+// Always initialize so Sentry.wrap() has a client; only *send* when a DSN is set
+// in a release build (never from local dev / Expo Go).
+Sentry.init({
+  dsn: SENTRY_DSN,
+  enabled: !!SENTRY_DSN && !__DEV__,
+  sendDefaultPii: false,       // don't auto-attach IP/PII — we set only a user id below
+  tracesSampleRate: 0.2,       // 20% performance sampling; tune as traffic grows
+});
 
 let splashRegistered = false;
 SplashScreen.preventAutoHideAsync()
@@ -38,6 +51,12 @@ SplashScreen.preventAutoHideAsync()
 function RootLayoutInner() {
   const { loading, user } = useAuth();
   usePushNotifications(user?.id ?? null);
+
+  // Attach the signed-in user's id to error reports (no email/PII) so crashes
+  // can be traced to a session; clears on sign-out.
+  useEffect(() => {
+    Sentry.setUser(user ? { id: user.id } : null);
+  }, [user]);
 
   useEffect(() => {
     if (!loading && splashRegistered) {
@@ -105,7 +124,7 @@ function RootLayoutInner() {
   );
 }
 
-export default function RootLayout() {
+function RootLayout() {
   const [fontsLoaded] = useFonts({
     PlayfairDisplay_700Bold,
     PlayfairDisplay_800ExtraBold,
@@ -130,3 +149,6 @@ export default function RootLayout() {
     </GestureHandlerRootView>
   );
 }
+
+// Wrap with Sentry so it can capture render errors and touch/navigation context.
+export default Sentry.wrap(RootLayout);

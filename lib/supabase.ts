@@ -6,6 +6,7 @@ import * as AuthSession from 'expo-auth-session';
 import * as FileSystem from 'expo-file-system/legacy';
 import { Platform } from 'react-native';
 import { StudentGoal, VoiceMemo } from './types';
+import { moderateMessage } from './moderation';
 
 // Required for OAuth session handling on mobile
 WebBrowser.maybeCompleteAuthSession();
@@ -230,6 +231,7 @@ export async function updateProfile(userId: string, updates: Partial<{
   avatar_url: string;
   onboarding_complete: boolean;
   role: 'student' | 'mentor';
+  guardian_consent_at: string | null;
 }>) {
   const allowed = await checkRateLimit(`profile_update:${userId}`, 10, 15);
   if (!allowed) {
@@ -439,6 +441,12 @@ export async function sendMessage(conversationId: string, senderId: string, cont
   const trimmed = content.trim();
   if (!trimmed) return { data: null, error: { message: 'Message cannot be empty.' } };
   if (trimmed.length > 3000) return { data: null, error: { message: 'Message must be 3,000 characters or fewer.' } };
+
+  // Always-on content moderation (offline, free) — App Store Guideline 1.2.
+  const moderation = moderateMessage(trimmed);
+  if (!moderation.ok) {
+    return { data: null, error: { message: moderation.reason ?? 'This message can’t be sent — it may violate our community guidelines.' } };
+  }
 
   const allowed = await checkRateLimit(`message:${senderId}`);
   if (!allowed) {
@@ -706,6 +714,48 @@ export async function isUserBlocked(blockerId: string, blockedId: string): Promi
     .eq('blocked_id', blockedId)
     .single();
   return !!data;
+}
+
+// ─── Reporting ────────────────────────────────────────────────
+
+export type ReportReason =
+  | 'harassment'
+  | 'inappropriate_content'
+  | 'safety_concern'
+  | 'spam'
+  | 'impersonation'
+  | 'other';
+
+export async function submitReport(params: {
+  reporterId: string;
+  reportedUserId?: string | null;
+  conversationId?: string | null;
+  messageId?: string | null;
+  reason: ReportReason;
+  details?: string;
+}): Promise<boolean> {
+  const allowed = await checkRateLimit(`report:${params.reporterId}`, 10, 60);
+  if (!allowed) return false;
+
+  const { data, error } = await supabase
+    .from('reports')
+    .insert({
+      reporter_id: params.reporterId,
+      reported_user_id: params.reportedUserId ?? null,
+      conversation_id: params.conversationId ?? null,
+      message_id: params.messageId ?? null,
+      reason: params.reason,
+      details: params.details?.trim().slice(0, 2000) || null,
+    })
+    .select('id')
+    .single();
+
+  if (error || !data) return false;
+
+  // Fire-and-forget AI triage + admin email. Runs only on reports (low volume),
+  // so it stays well within the Gemini free tier.
+  supabase.functions.invoke('report-triage', { body: { reportId: data.id } }).catch(() => {});
+  return true;
 }
 
 // ─── Achievement Helpers ──────────────────────────────────────

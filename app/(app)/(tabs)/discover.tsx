@@ -92,6 +92,7 @@ function StudentMatchScreen() {
         <View style={sStyles.headerOrb} />
         <Text style={sStyles.eyebrow}>YOUR MATCH</Text>
         <Text style={sStyles.title}>My Mentor</Text>
+        <Text style={sStyles.headerFree}>Free · AI-matched · no fees, ever</Text>
       </View>
 
       <ScrollView
@@ -117,7 +118,7 @@ function StudentMatchScreen() {
               <Text style={sStyles.pendingSubtitle}>
                 {matchAttemptFailed
                   ? "We could not reach our matching service. Tap retry to try again, or check back in a moment."
-                  : "Our AI is carefully reviewing your profile and goals to find the mentor who fits you best. We'll have a match ready for you soon. Check back anytime."}
+                  : "Our AI is carefully reviewing your profile and goals to find the mentor who fits you best. We'll have a match ready for you soon. Check back anytime. This is completely free."}
               </Text>
               {matchAttemptFailed ? (
                 <TouchableOpacity
@@ -458,6 +459,10 @@ const sStyles = StyleSheet.create({
     fontFamily: Fonts.sansBold, letterSpacing: 1.5, marginBottom: 4,
   },
   title: { ...Typography.displaySm, color: Colors.white },
+  headerFree: {
+    ...Typography.caption, color: 'rgba(255,255,255,0.45)',
+    fontFamily: Fonts.sansMedium, marginTop: 4,
+  },
 
   scrollContent: { paddingHorizontal: Spacing.md, paddingTop: Spacing.lg },
 

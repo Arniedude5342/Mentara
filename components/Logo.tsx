@@ -23,10 +23,15 @@ export default function Logo({ size = 'md', variant = 'full', light = false }: L
 
   return (
     <View style={styles.container}>
-      <View style={{ width: markSize, height: markSize, borderRadius: markSize * 0.28, overflow: 'hidden' }}>
+      <View style={{ width: markSize, height: markSize, borderRadius: markSize * 0.28, overflow: 'hidden', backgroundColor: '#0D4F5C' }}>
         <Image
           source={logoImage}
-          style={{ width: '100%', height: '100%' }}
+          style={{
+            width: markSize * 1.08,
+            height: markSize * 1.08,
+            marginLeft: -markSize * 0.04,
+            marginTop: -markSize * 0.04,
+          }}
           resizeMode="cover"
         />
       </View>

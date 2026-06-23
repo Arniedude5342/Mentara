@@ -7,7 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '@/constants/theme';
 
-const LAST_UPDATED = 'May 25, 2026';
+const LAST_UPDATED = 'June 23, 2026';
 
 interface SectionProps {
   title: string;
@@ -94,18 +94,15 @@ export default function PrivacyPolicyScreen() {
             for mentors.
           </Bullet>
           <Bullet>
-            <Text style={styles.bold}>Voice Reflections:</Text> Short voice memos you may
-            optionally record after a mentorship call. We transcribe these using AI to give
-            you summary insights; the audio file and transcript are stored privately.
-          </Bullet>
-          <Bullet>
             <Text style={styles.bold}>Push Notification Tokens:</Text> If you grant
             notification permission, we store a device-specific push token used solely to
             deliver in-app alerts (new messages, meeting reminders, AI matches).
           </Bullet>
           <Bullet>
-            <Text style={styles.bold}>Usage Data:</Text> Basic app usage information such as
-            screens visited and features used, collected to improve the app experience.
+            <Text style={styles.bold}>Diagnostics & Crash Reports:</Text> If the app crashes or
+            encounters an error, we collect diagnostic information — error messages, stack traces,
+            device and OS type, and a random user identifier — through Sentry to diagnose and fix
+            problems. This never includes the content of your messages.
           </Bullet>
         </Section>
 
@@ -133,8 +130,9 @@ export default function PrivacyPolicyScreen() {
           <Bullet>
             <Text style={styles.bold}>Service Providers:</Text> We use Supabase for database,
             authentication, storage, and realtime messaging. We use Google Gemini (server-side)
-            to power AI-driven mentor matching and post-call reflection summaries. We use Expo
-            Push Notification Service to deliver notifications to your device. These providers
+            to power AI-driven mentor matching. We use Expo
+            Push Notification Service to deliver notifications to your device. We use Sentry to
+            collect crash and error diagnostics so we can identify and fix problems. These providers
             process data only as needed to provide their services and are bound by their own
             privacy commitments.
           </Bullet>
@@ -187,7 +185,7 @@ export default function PrivacyPolicyScreen() {
             Users between 13–17 must have parental or guardian consent before using Mentara.
             If you are a parent or guardian and believe your child has provided us with
             personal information without your consent, please contact us immediately at
-            mentarasupport@gmail.com.
+            hello@mentara.me.
           </P>
         </Section>
 
@@ -214,7 +212,7 @@ export default function PrivacyPolicyScreen() {
             If you have questions about this Privacy Policy or wish to exercise your data
             rights, please contact us at:
           </P>
-          <P>Email: mentarasupport@gmail.com</P>
+          <P>Email: hello@mentara.me</P>
           <P>
             We will respond to all requests within 30 days.
           </P>
