@@ -189,32 +189,38 @@ section { padding: 80px 0; position: relative; }
 .step h3 { font-size: 20px; color: var(--ink); margin-bottom: 8px; }
 .step p { color: var(--muted); font-size: 15.5px; }
 
-/* Features : sharp cards with monoline icons */
-.features { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
-.feature {
-  position: relative; background: var(--card); border-radius: var(--radius-card);
-  padding: 30px 32px; box-shadow: var(--shadow-sm); border: 1px solid var(--line);
-  display: flex; gap: 20px; align-items: flex-start; overflow: hidden;
-  transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease;
+/* Why Mentara : sharp divided info grid (no bubble cards) */
+.features {
+  display: grid; grid-template-columns: repeat(2, 1fr);
+  background: var(--card); border: 1px solid var(--line-strong);
+  border-radius: 4px; overflow: hidden; box-shadow: var(--shadow-sm);
 }
+.feature {
+  position: relative; padding: 38px 40px;
+  display: flex; gap: 22px; align-items: flex-start;
+  border-right: 1px solid var(--line); border-bottom: 1px solid var(--line);
+  transition: background .2s ease;
+}
+.feature:nth-child(2n) { border-right: none; }
+.feature:nth-child(n+3) { border-bottom: none; }
 .feature::before {
   content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
-  background: var(--teal); transform: scaleY(0); transform-origin: top; transition: transform .35s ease;
+  background: var(--teal); transform: scaleY(0); transform-origin: center; transition: transform .3s ease;
 }
 .feature:nth-child(2)::before { background: var(--amber); }
 .feature:nth-child(3)::before { background: var(--sage); }
 .feature:nth-child(4)::before { background: var(--indigo); }
-.feature:hover { transform: translateY(-4px); box-shadow: var(--shadow-hover); border-color: var(--line-strong); }
+.feature:hover { background: rgba(13,79,92,.025); }
 .feature:hover::before { transform: scaleY(1); }
 .feature .icon {
-  flex: 0 0 auto; width: 48px; height: 48px; border-radius: var(--radius-sm);
+  flex: 0 0 auto; width: 40px; height: 40px;
   display: grid; place-items: center; color: var(--teal);
 }
-.feature .icon svg { width: 24px; height: 24px; }
-.feature:nth-child(1) .icon { background: rgba(13,79,92,.09); color: var(--teal); }
-.feature:nth-child(2) .icon { background: rgba(201,139,48,.14); color: var(--amber-deep); }
-.feature:nth-child(3) .icon { background: rgba(61,122,91,.13); color: var(--sage); }
-.feature:nth-child(4) .icon { background: rgba(74,59,124,.12); color: var(--indigo); }
+.feature .icon svg { width: 28px; height: 28px; }
+.feature:nth-child(1) .icon { color: var(--teal); }
+.feature:nth-child(2) .icon { color: var(--amber-deep); }
+.feature:nth-child(3) .icon { color: var(--sage); }
+.feature:nth-child(4) .icon { color: var(--indigo); }
 .feature h3 { font-size: 18.5px; color: var(--ink); margin-bottom: 6px; }
 .feature p { color: var(--muted); font-size: 15px; }
 
@@ -284,6 +290,8 @@ footer { padding: 48px 0; border-top: 1px solid var(--line); margin-top: 12px; }
 }
 @media (max-width: 760px) {
   .steps, .features { grid-template-columns: 1fr; }
+  .feature { border-right: none; border-bottom: 1px solid var(--line); padding: 30px 26px; }
+  .feature:last-child { border-bottom: none; }
   .hero { padding: 56px 0 48px; }
   section { padding: 58px 0; }
   .cta-band { padding: 44px 24px; }
