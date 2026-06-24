@@ -466,13 +466,13 @@ export default function ProfileScreen() {
               </Text>
               <TouchableOpacity
                 style={[styles.supportEmailBtn, { borderColor: roleColor }]}
-                onPress={() => Linking.openURL('mailto:mentarasupport@gmail.com').catch(() => {})}
+                onPress={() => Linking.openURL('mailto:support@mentara.me').catch(() => {})}
                 accessibilityLabel="Email support"
                 accessibilityRole="button"
                 activeOpacity={0.75}
               >
                 <Ionicons name="mail-outline" size={16} color={roleColor} />
-                <Text style={[styles.supportEmailText, { color: roleColor }]}>mentarasupport@gmail.com</Text>
+                <Text style={[styles.supportEmailText, { color: roleColor }]}>support@mentara.me</Text>
                 <Ionicons name="arrow-forward" size={14} color={roleColor} />
               </TouchableOpacity>
             </View>

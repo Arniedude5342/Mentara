@@ -240,7 +240,7 @@ export default function ChatScreen() {
       ok ? 'Report submitted' : 'Couldn’t submit',
       ok
         ? 'Thanks for flagging this. Our team reviews reports within 24 hours and takes action on violations. You can also block this person.'
-        : 'Something went wrong. Please try again, or email mentarasupport@gmail.com.',
+        : 'Something went wrong. Please try again, or email support@mentara.me.',
     );
   };
 

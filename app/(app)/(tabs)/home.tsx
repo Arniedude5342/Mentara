@@ -432,7 +432,7 @@ export default function HomeScreen() {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.verifyBannerTitle, { color: Colors.error }]}>Verification unsuccessful</Text>
-                <Text style={styles.verifyBannerDesc}>We couldn't verify your profile. Please update your LinkedIn URL in your profile and contact mentarasupport@gmail.com.</Text>
+                <Text style={styles.verifyBannerDesc}>We couldn't verify your profile. Please update your LinkedIn URL in your profile and contact support@mentara.me.</Text>
               </View>
             </View>
           )}

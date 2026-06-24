@@ -466,8 +466,8 @@ export default function LandingScreen() {
           </View>
           <View style={styles.footerContact}>
             <Text style={styles.footerContactText}>Questions? </Text>
-            <TouchableOpacity onPress={() => Linking.openURL('mailto:mentarasupport@gmail.com').catch(() => {})} accessibilityLabel="Email Mentara support" accessibilityRole="button">
-              <Text style={styles.footerContactEmail}>mentarasupport@gmail.com</Text>
+            <TouchableOpacity onPress={() => Linking.openURL('mailto:support@mentara.me').catch(() => {})} accessibilityLabel="Email Mentara support" accessibilityRole="button">
+              <Text style={styles.footerContactEmail}>support@mentara.me</Text>
             </TouchableOpacity>
           </View>
         </View>

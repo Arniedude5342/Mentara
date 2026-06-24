@@ -169,11 +169,11 @@ export default function AboutScreen() {
           <View style={styles.contactRow}>
             <Text style={styles.contactText}>Questions? </Text>
             <TouchableOpacity
-              onPress={() => Linking.openURL('mailto:mentarasupport@gmail.com').catch(() => {})}
+              onPress={() => Linking.openURL('mailto:support@mentara.me').catch(() => {})}
               accessibilityLabel="Email Mentara support"
               accessibilityRole="button"
             >
-              <Text style={styles.contactEmail}>mentarasupport@gmail.com</Text>
+              <Text style={styles.contactEmail}>support@mentara.me</Text>
             </TouchableOpacity>
           </View>
         </View>

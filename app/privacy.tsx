@@ -185,7 +185,7 @@ export default function PrivacyPolicyScreen() {
             Users between 13–17 must have parental or guardian consent before using Mentara.
             If you are a parent or guardian and believe your child has provided us with
             personal information without your consent, please contact us immediately at
-            hello@mentara.me.
+            support@mentara.me.
           </P>
         </Section>
 
@@ -212,7 +212,7 @@ export default function PrivacyPolicyScreen() {
             If you have questions about this Privacy Policy or wish to exercise your data
             rights, please contact us at:
           </P>
-          <P>Email: hello@mentara.me</P>
+          <P>Email: support@mentara.me</P>
           <P>
             We will respond to all requests within 30 days.
           </P>

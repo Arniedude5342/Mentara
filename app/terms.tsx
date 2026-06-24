@@ -53,7 +53,7 @@ const SECTIONS = [
   {
     number: '09',
     title: 'Contact Us',
-    body: 'If you have any questions, concerns, or feedback about these Terms of Service or your experience with Mentara, please reach out to us. We are committed to resolving any issues promptly and fairly.\n\nEmail: mentarasupport@gmail.com',
+    body: 'If you have any questions, concerns, or feedback about these Terms of Service or your experience with Mentara, please reach out to us. We are committed to resolving any issues promptly and fairly.\n\nEmail: support@mentara.me',
   },
 ];
 

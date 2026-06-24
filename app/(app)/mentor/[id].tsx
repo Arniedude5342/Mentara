@@ -171,7 +171,7 @@ export default function MentorProfileScreen() {
                   {
                     text: 'Report via email',
                     style: 'destructive',
-                    onPress: () => Linking.openURL(`mailto:mentarasupport@gmail.com?subject=${subject}&body=${body}`).catch(() => {}),
+                    onPress: () => Linking.openURL(`mailto:support@mentara.me?subject=${subject}&body=${body}`).catch(() => {}),
                   },
                 ],
               );
