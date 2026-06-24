@@ -37,8 +37,8 @@
       <div class="nav-links">
         <a class="link" href="/#how">How it works</a>
         <a class="link" href="/#why">Why Mentara</a>
-        <a class="link" href="/#about">About</a>
         <a class="link" href="/#mentors">Become a mentor</a>
+        <a class="link" href="/#about">About</a>
         <div class="nav-dropdown">
           <button class="nav-dropdown-toggle" aria-haspopup="true" aria-expanded="false">Resources
             <svg class="caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
@@ -156,6 +156,53 @@
     </div>
   </section>
 
+  <!-- ── Founding mentors ── -->
+  <section id="mentors" class="mentor">
+    <div class="wrap mentor-grid">
+      <div class="mentor-pitch">
+        <span class="founding-pill">★ Founding Mentor Program</span>
+        <h2>Become a founding mentor and shape the next generation.</h2>
+        <p>We're welcoming our first mentors <strong>before</strong> Mentara opens to students, so the right guidance is waiting the moment they arrive. As a founding mentor, you help set the standard for the whole community, and you mentor entirely on your own terms.</p>
+        <ul class="perk-list">
+          <li>Recognized as a founding mentor inside the app</li>
+          <li>First pick of students matched to your expertise</li>
+          <li>Fully remote, on a schedule that works for you</li>
+          <li>A direct hand in shaping the community from day one</li>
+          <li>Real impact for the students who need guidance most</li>
+        </ul>
+      </div>
+
+      <div class="form-card">
+        <h3>Apply to be a founding mentor</h3>
+        <p class="form-card-sub">Under a minute to apply. We'll be in touch before we launch.</p>
+        <form class="js-mentor" novalidate>
+          <div class="field">
+            <label for="m-name">Full name</label>
+            <input id="m-name" name="name" type="text" placeholder="Jordan Lee" required />
+          </div>
+          <div class="field">
+            <label for="m-email">Email</label>
+            <input id="m-email" name="email" type="email" placeholder="you@email.com" required />
+          </div>
+          <div class="field">
+            <label for="m-expertise">Area(s) of expertise</label>
+            <input id="m-expertise" name="expertise" type="text" placeholder="e.g. Computer science, college admissions, startups" required />
+          </div>
+          <div class="field">
+            <label for="m-exp">A bit about your experience <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
+            <textarea id="m-exp" name="experience" placeholder="What makes you a great mentor? Roles, background, who you'd love to help."></textarea>
+          </div>
+          <div class="field">
+            <label for="m-linkedin">LinkedIn or portfolio <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
+            <input id="m-linkedin" name="linkedin" type="text" placeholder="linkedin.com/in/you" />
+          </div>
+          <button type="submit" class="btn btn-amber">Apply to be a founding mentor</button>
+        </form>
+        <p class="form-msg" role="status" aria-live="polite"></p>
+      </div>
+    </div>
+  </section>
+
   <!-- ── About Mentara ── -->
   <section id="about">
     <div class="wrap">
@@ -223,53 +270,6 @@
             <p>Every interaction on Mentara is built on real mentors and mutual respect.</p>
           </div>
         </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ── Founding mentors ── -->
-  <section id="mentors" class="mentor">
-    <div class="wrap mentor-grid">
-      <div class="mentor-pitch">
-        <span class="founding-pill">★ Founding Mentor Program</span>
-        <h2>Shape the next generation. Be a founding mentor.</h2>
-        <p>We're building Mentara's mentor community <strong>before</strong> we open to students, so every student is matched the moment they arrive. Join the founding cohort and help set the tone for what great mentorship looks like.</p>
-        <ul class="perk-list">
-          <li>Founding-mentor status and recognition in the app</li>
-          <li>First pick of students matched to your expertise</li>
-          <li>Flexible: mentor on your own schedule, fully remote</li>
-          <li>Shape features and the community from day one</li>
-          <li>Make real impact for students who need your guidance</li>
-        </ul>
-      </div>
-
-      <div class="form-card">
-        <h3>Apply to mentor</h3>
-        <p class="form-card-sub">Takes under a minute. We'll reach out before launch.</p>
-        <form class="js-mentor" novalidate>
-          <div class="field">
-            <label for="m-name">Full name</label>
-            <input id="m-name" name="name" type="text" placeholder="Jordan Lee" required />
-          </div>
-          <div class="field">
-            <label for="m-email">Email</label>
-            <input id="m-email" name="email" type="email" placeholder="you@email.com" required />
-          </div>
-          <div class="field">
-            <label for="m-expertise">Area(s) of expertise</label>
-            <input id="m-expertise" name="expertise" type="text" placeholder="e.g. Computer science, college admissions, startups" required />
-          </div>
-          <div class="field">
-            <label for="m-exp">A bit about your experience <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
-            <textarea id="m-exp" name="experience" placeholder="What makes you a great mentor? Roles, background, who you'd love to help."></textarea>
-          </div>
-          <div class="field">
-            <label for="m-linkedin">LinkedIn or portfolio <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
-            <input id="m-linkedin" name="linkedin" type="text" placeholder="linkedin.com/in/you" />
-          </div>
-          <button type="submit" class="btn btn-amber">Apply to be a founding mentor</button>
-        </form>
-        <p class="form-msg" role="status" aria-live="polite"></p>
       </div>
     </div>
   </section>
