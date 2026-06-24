@@ -141,7 +141,7 @@ if (toggle && links) {
     phone.style.transform = 'scale(' + scale.toFixed(3) + ')';
     if (bg) {
       bg.style.opacity = (1 - zoomP * 0.94).toFixed(3);
-      bg.style.transform = 'scale(' + (1 + zoomP * 0.9).toFixed(3) + ')';
+      bg.style.transform = 'scale(' + (1 + zoomP * 0.45).toFixed(3) + ')';
     }
 
     // screen phase (0.46 → 1.0): step through login → matches → chat
