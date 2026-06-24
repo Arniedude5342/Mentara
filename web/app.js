@@ -134,17 +134,18 @@ if (toggle && links) {
     const scrolled = Math.min(Math.max(-demo.getBoundingClientRect().top, 0), Math.max(total, 1));
     const p = total > 0 ? scrolled / total : 0;
 
-    // zoom phase (0 → 0.30): phone scales up as if flying into it
-    const zoomP = Math.min(p / 0.30, 1);
-    const scale = 0.68 + zoomP * (1.04 - 0.68);
+    // zoom phase (0 → 0.42): fly into the phone, small/far up to filling the view
+    const zoomP = Math.min(p / 0.42, 1);
+    const eased = zoomP * zoomP * (3 - 2 * zoomP); // smoothstep
+    const scale = 0.40 + eased * (1.18 - 0.40);
     phone.style.transform = 'scale(' + scale.toFixed(3) + ')';
     if (bg) {
-      bg.style.opacity = (1 - zoomP * 0.9).toFixed(3);
-      bg.style.transform = 'scale(' + (1 + zoomP * 0.55).toFixed(3) + ')';
+      bg.style.opacity = (1 - zoomP * 0.94).toFixed(3);
+      bg.style.transform = 'scale(' + (1 + zoomP * 0.9).toFixed(3) + ')';
     }
 
-    // screen phase (0.34 → 1.0): step through login → matches → chat
-    const sp = Math.max((p - 0.34) / 0.66, 0);
+    // screen phase (0.46 → 1.0): step through login → matches → chat
+    const sp = Math.max((p - 0.46) / 0.54, 0);
     let idx = Math.floor(sp * screens.length);
     if (idx > screens.length - 1) idx = screens.length - 1;
     screens.forEach((s, i) => s.classList.toggle('active', i === idx));
