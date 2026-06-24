@@ -116,3 +116,44 @@ if (toggle && links) {
     a.addEventListener('click', () => links.classList.remove('open'))
   );
 }
+
+// ── App demo: scroll-zoom into the phone ──────────────────────
+(function () {
+  const demo = document.querySelector('.phone-demo');
+  if (!demo) return;
+  const phone = demo.querySelector('.phone');
+  const bg = demo.querySelector('.demo-bg');
+  const screens = Array.from(demo.querySelectorAll('.phone-screen'));
+  const caps = Array.from(demo.querySelectorAll('.demo-cap'));
+  const dots = Array.from(demo.querySelectorAll('.demo-dots i'));
+  let ticking = false;
+
+  function update() {
+    ticking = false;
+    const total = demo.offsetHeight - window.innerHeight;
+    const scrolled = Math.min(Math.max(-demo.getBoundingClientRect().top, 0), Math.max(total, 1));
+    const p = total > 0 ? scrolled / total : 0;
+
+    // zoom phase (0 → 0.30): phone scales up as if flying into it
+    const zoomP = Math.min(p / 0.30, 1);
+    const scale = 0.68 + zoomP * (1.04 - 0.68);
+    phone.style.transform = 'scale(' + scale.toFixed(3) + ')';
+    if (bg) {
+      bg.style.opacity = (1 - zoomP * 0.9).toFixed(3);
+      bg.style.transform = 'scale(' + (1 + zoomP * 0.55).toFixed(3) + ')';
+    }
+
+    // screen phase (0.34 → 1.0): step through login → matches → chat
+    const sp = Math.max((p - 0.34) / 0.66, 0);
+    let idx = Math.floor(sp * screens.length);
+    if (idx > screens.length - 1) idx = screens.length - 1;
+    screens.forEach((s, i) => s.classList.toggle('active', i === idx));
+    caps.forEach((s, i) => s.classList.toggle('active', i === idx));
+    dots.forEach((d, i) => d.classList.toggle('active', i === idx));
+  }
+
+  function onScroll() { if (!ticking) { ticking = true; requestAnimationFrame(update); } }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  window.addEventListener('resize', onScroll);
+  update();
+})();
