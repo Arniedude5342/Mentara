@@ -366,7 +366,7 @@ footer { padding: 48px 0; border-top: 1px solid var(--line); margin-top: 12px; }
 .foot-brand { display: inline-flex; align-items: center; gap: 11px; }
 .foot-brand img { width: 30px; height: 30px; border-radius: 8px; display: block; }
 .foot-brand .copy { font-size: 14px; color: var(--muted); }
-.foot-links { display: flex; gap: 22px; font-size: 14.5px; color: var(--muted); }
+.foot-links { display: flex; flex-wrap: wrap; gap: 12px 18px; font-size: 14.5px; color: var(--muted); }
 .foot-links a:hover { color: var(--teal); }
 .copy { font-size: 14px; color: var(--muted); }
 
@@ -536,6 +536,14 @@ footer { padding: 48px 0; border-top: 1px solid var(--line); margin-top: 12px; }
   .nav-dropdown-toggle .caret { display: none; }
   .nav-dropdown-menu {
     position: static; opacity: 1; visibility: visible; transform: none;
-    box-shadow: none; border: none; padding: 8px 0 0 12px; min-width: 0; gap: 4px;
+    box-shadow: none; border: none; background: none; border-radius: 0; padding: 8px 0 0 12px; min-width: 0; gap: 4px;
   }
+}
+
+/* Phones: stack the email signup form, tighten footer */
+@media (max-width: 520px) {
+  .signup { flex-direction: column; align-items: stretch; }
+  .signup input[type="email"], .signup .btn { width: 100%; flex: 1 1 auto; }
+  .foot-links { gap: 10px 16px; }
+  .foot-inner { gap: 14px; }
 }
