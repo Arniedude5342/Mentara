@@ -294,6 +294,14 @@ section { padding: 80px 0; position: relative; }
 .form-card .form-card-sub { color: var(--muted); font-size: 14.5px; margin-bottom: 22px; }
 .form-card .btn { width: 100%; padding: 15px; border-radius: 12px; }
 
+/* Fields covered */
+.fields-block { position: relative; z-index: 1; margin-top: 60px; text-align: center; }
+.fields-label { text-transform: uppercase; letter-spacing: .14em; font-size: 13px; font-weight: 700; color: var(--amber); margin-bottom: 10px; }
+.fields-title { font-size: clamp(22px, 3vw, 30px); color: var(--teal); max-width: 24ch; margin: 0 auto 26px; }
+.fields-tags { display: flex; flex-wrap: wrap; justify-content: center; gap: 9px; max-width: 900px; margin: 0 auto; }
+.field-tag { font-size: 13.5px; font-weight: 600; color: var(--teal); background: #fff; border: 1px solid var(--line-strong); border-radius: 7px; padding: 8px 13px; transition: border-color .15s ease, color .15s ease, transform .15s ease; }
+.field-tag:hover { border-color: var(--amber); color: var(--amber-deep); transform: translateY(-1px); }
+
 /* CTA band */
 .cta-band { background: none; border-radius: 0; padding: 50px 0 8px; text-align: center; position: relative; overflow: visible; border-top: 1px solid var(--line); margin-top: 22px; }
 .cta-band h2 { color: var(--teal); font-size: clamp(28px, 4vw, 40px); margin-bottom: 14px; }
