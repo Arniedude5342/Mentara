@@ -338,6 +338,26 @@ CREATE TRIGGER on_message_sent
   AFTER INSERT ON messages
   FOR EACH ROW EXECUTE FUNCTION update_conversation_last_message();
 
+-- Lets a web OAuth signup claim the mentor role + mark signup_source='web'.
+-- SECURITY DEFINER so it can bypass the RLS block on direct role changes.
+CREATE OR REPLACE FUNCTION public.claim_mentor_role()
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  UPDATE profiles
+     SET role = 'mentor',
+         signup_source = 'web'
+   WHERE id = auth.uid()
+     AND role = 'student';
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.claim_mentor_role() FROM public, anon;
+GRANT EXECUTE ON FUNCTION public.claim_mentor_role() TO authenticated;
+
 -- ============================================================
 -- INDEXES
 -- ============================================================

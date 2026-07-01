@@ -25,7 +25,8 @@ SET search_path = public
 AS $$
 BEGIN
   UPDATE profiles
-     SET role = 'mentor'
+     SET role = 'mentor',
+         signup_source = 'web'
    WHERE id = auth.uid()
      AND role = 'student';
 END;
