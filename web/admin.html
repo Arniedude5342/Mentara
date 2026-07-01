@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mentara Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --teal: #0D4F5C;
+      --teal-deep: #093A44;
+      --amber: #C98B30;
+      --sage: #3D7A5B;
+      --bg: #F5F4F1;
+      --ink: #1A2B2E;
+      --muted: #5B6B6E;
+      --card: #FFFFFF;
+      --line: rgba(13,79,92,0.10);
+      --line-strong: rgba(13,79,92,0.16);
+      --radius: 14px;
+      --shadow: 0 18px 48px rgba(13,79,92,0.12);
+      --shadow-sm: 0 6px 20px rgba(13,79,92,0.07);
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Password screen ─────────────────────────────────── */
+    #lock-screen {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .lock-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 48px 40px;
+      width: 100%;
+      max-width: 380px;
+      text-align: center;
+    }
+
+    .lock-card img { height: 34px; margin-bottom: 24px; }
+
+    .lock-card h1 {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--teal);
+      margin-bottom: 4px;
+    }
+
+    .lock-card p.sub {
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 26px;
+    }
+
+    .pw-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+
+    .pw-row input {
+      flex: 1;
+      padding: 11px 14px;
+      border: 1.5px solid var(--line-strong);
+      border-radius: 10px;
+      font-family: inherit;
+      font-size: 14px;
+      color: var(--ink);
+      background: var(--bg);
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .pw-row input:focus { border-color: var(--teal); }
+
+    .btn-teal {
+      padding: 11px 18px;
+      background: var(--teal);
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.15s, opacity 0.15s;
+    }
+
+    .btn-teal:hover { background: var(--teal-deep); }
+    .btn-teal:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .lock-error {
+      font-size: 13px;
+      color: #C45C3A;
+      min-height: 18px;
+    }
+
+    /* ── Dashboard ───────────────────────────────────────── */
+    #dashboard { display: none; min-height: 100vh; }
+
+    .top-bar {
+      background: var(--card);
+      border-bottom: 1px solid var(--line);
+      padding: 0 32px;
+      height: 58px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .top-bar img { height: 26px; }
+
+    .badge {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--teal);
+      background: rgba(13,79,92,0.09);
+      padding: 3px 8px;
+      border-radius: 20px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .top-bar .spacer { flex: 1; }
+
+    .auto-label {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .top-btn {
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      border: 1.5px solid var(--line-strong);
+      border-radius: 8px;
+      background: transparent;
+      color: var(--muted);
+      padding: 5px 12px;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .top-btn:hover { border-color: var(--teal); color: var(--teal); }
+    .top-btn.danger:hover { border-color: #C45C3A; color: #C45C3A; }
+
+    .main {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 36px 32px 72px;
+    }
+
+    .section-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--muted);
+      margin-bottom: 16px;
+    }
+
+    /* ── Stat cards ─────────────────────────────────────── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+      gap: 14px;
+      margin-bottom: 40px;
+    }
+
+    .stat-card {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-sm);
+      padding: 22px 20px 18px;
+      border: 1px solid var(--line);
+    }
+
+    .stat-label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 10px;
+    }
+
+    .stat-value {
+      font-size: 42px;
+      font-weight: 700;
+      color: var(--teal);
+      line-height: 1;
+      margin-bottom: 5px;
+    }
+
+    .stat-sub { font-size: 12px; color: var(--muted); }
+
+    .stat-card.amber .stat-value { color: var(--amber); }
+    .stat-card.sage  .stat-value { color: var(--sage); }
+
+    /* ── Tables ─────────────────────────────────────────── */
+    .table-section {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--line);
+      margin-bottom: 22px;
+      overflow: hidden;
+    }
+
+    .table-head {
+      padding: 18px 22px 14px;
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .table-head h2 {
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .count-pill {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--muted);
+      background: var(--bg);
+      padding: 2px 8px;
+      border-radius: 20px;
+    }
+
+    table { width: 100%; border-collapse: collapse; }
+
+    thead th {
+      padding: 9px 22px;
+      text-align: left;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      background: rgba(13,79,92,0.03);
+      border-bottom: 1px solid var(--line);
+    }
+
+    tbody td {
+      padding: 12px 22px;
+      font-size: 13px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover td { background: rgba(13,79,92,0.025); }
+
+    .placeholder td {
+      text-align: center;
+      color: var(--muted);
+      padding: 28px !important;
+      font-size: 13px;
+    }
+
+    .tag {
+      display: inline-block;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 20px;
+    }
+
+    .tag-landing  { background: rgba(13,79,92,0.09); color: var(--teal); }
+    .tag-mentor   { background: rgba(201,139,48,0.12); color: var(--amber); }
+
+    /* ── Application modal ──────────────────────────────── */
+    .modal-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(13,79,92,0.3);
+      backdrop-filter: blur(3px);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .modal-backdrop.open { display: flex; }
+
+    .modal {
+      background: var(--card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      width: 100%;
+      max-width: 520px;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .modal-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      padding: 24px 24px 0;
+      gap: 12px;
+    }
+
+    .modal-name {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--ink);
+      line-height: 1.2;
+    }
+
+    .modal-date {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .modal-close {
+      flex-shrink: 0;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      border: 1.5px solid var(--line-strong);
+      background: transparent;
+      cursor: pointer;
+      font-size: 16px;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s;
+    }
+
+    .modal-close:hover { border-color: var(--ink); color: var(--ink); }
+
+    .modal-body { padding: 20px 24px 28px; }
+
+    .modal-field { margin-bottom: 18px; }
+
+    .modal-field:last-child { margin-bottom: 0; }
+
+    .modal-field-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--muted);
+      margin-bottom: 5px;
+    }
+
+    .modal-field-value {
+      font-size: 14px;
+      color: var(--ink);
+      line-height: 1.6;
+    }
+
+    .modal-field-value a {
+      color: var(--teal);
+      text-decoration: none;
+    }
+
+    .modal-field-value a:hover { text-decoration: underline; }
+
+    .modal-divider {
+      height: 1px;
+      background: var(--line);
+      margin: 20px 0;
+    }
+
+    .clickable-row { cursor: pointer; }
+    .clickable-row:hover td { background: rgba(201,139,48,0.06) !important; }
+  </style>
+</head>
+<body>
+
+<!-- ── Password screen ────────────────────────────────── -->
+<div id="lock-screen">
+  <div class="lock-card">
+    <img src="logo.png" alt="Mentara" />
+    <h1>Admin Dashboard</h1>
+    <p class="sub">Enter your admin password to continue</p>
+    <form id="lock-form">
+      <div class="pw-row">
+        <input id="pw-input" type="password" placeholder="Admin password" autocomplete="current-password" required />
+        <button class="btn-teal" type="submit" id="unlock-btn">Unlock</button>
+      </div>
+    </form>
+    <p class="lock-error" id="lock-error"></p>
+  </div>
+</div>
+
+<!-- ── Dashboard ─────────────────────────────────────── -->
+<div id="dashboard">
+  <div class="top-bar">
+    <img src="logo.png" alt="Mentara" />
+    <span class="badge">Admin</span>
+    <span class="spacer"></span>
+    <span class="auto-label" id="last-updated"></span>
+    <button class="top-btn" id="refresh-btn">Refresh</button>
+    <button class="top-btn danger" id="lock-btn">Lock</button>
+  </div>
+
+  <div class="main">
+
+    <p class="section-label">Overview</p>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Student Waitlist</div>
+        <div class="stat-value" id="stat-waitlist">-</div>
+        <div class="stat-sub">notify at launch</div>
+      </div>
+      <div class="stat-card amber">
+        <div class="stat-label">Mentor Applications</div>
+        <div class="stat-value" id="stat-mentor-apps">-</div>
+        <div class="stat-sub">via website form</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">App Mentors</div>
+        <div class="stat-value" id="stat-app-mentors">-</div>
+        <div class="stat-sub">active accounts</div>
+      </div>
+      <div class="stat-card sage">
+        <div class="stat-label">App Students</div>
+        <div class="stat-value" id="stat-app-students">-</div>
+        <div class="stat-sub">active accounts</div>
+      </div>
+    </div>
+
+    <p class="section-label">Student Waitlist</p>
+    <div class="table-section">
+      <div class="table-head">
+        <h2>Student Waitlist</h2>
+        <span class="count-pill" id="wl-count">...</span>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th style="width:40px">#</th>
+            <th>Email</th>
+            <th>Source</th>
+            <th>Signed up</th>
+          </tr>
+        </thead>
+        <tbody id="waitlist-body">
+          <tr class="placeholder"><td colspan="4">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="section-label">Mentor Applications</p>
+    <div class="table-section">
+      <div class="table-head">
+        <h2>Mentor Applications</h2>
+        <span class="count-pill" id="ma-count">...</span>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th style="width:40px">#</th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Expertise</th>
+            <th>Applied</th>
+          </tr>
+        </thead>
+        <tbody id="mentor-apps-body">
+          <tr class="placeholder"><td colspan="5">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── Application detail modal ───────────────────────── -->
+<div class="modal-backdrop" id="app-modal">
+  <div class="modal" id="modal-card">
+    <div class="modal-top">
+      <div>
+        <div class="modal-name" id="modal-name"></div>
+        <div class="modal-date" id="modal-date"></div>
+      </div>
+      <button class="modal-close" id="modal-close">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-field">
+        <div class="modal-field-label">Email</div>
+        <div class="modal-field-value" id="modal-email"></div>
+      </div>
+      <div class="modal-divider"></div>
+      <div class="modal-field">
+        <div class="modal-field-label">Field of Expertise</div>
+        <div class="modal-field-value" id="modal-expertise"></div>
+      </div>
+      <div class="modal-field" id="modal-experience-wrap">
+        <div class="modal-field-label">Experience / Background</div>
+        <div class="modal-field-value" id="modal-experience"></div>
+      </div>
+      <div class="modal-field" id="modal-linkedin-wrap">
+        <div class="modal-field-label">LinkedIn</div>
+        <div class="modal-field-value" id="modal-linkedin"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const FN_URL = 'https://fjzvyotmklgdhiygtgnn.supabase.co/functions/v1/admin-stats';
+  const SESSION_KEY = 'mentara_admin_pw';
+  const REFRESH_MS  = 60_000; // auto-refresh every 60 seconds
+
+  let refreshTimer = null;
+  let savedPassword = null;
+
+  function fmt(ts) {
+    const d = new Date(ts);
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+      + ' at ' + d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  }
+
+  function showLock() {
+    document.getElementById('lock-screen').style.display = 'flex';
+    document.getElementById('dashboard').style.display   = 'none';
+    if (refreshTimer) { clearInterval(refreshTimer); refreshTimer = null; }
+    sessionStorage.removeItem(SESSION_KEY);
+    savedPassword = null;
+  }
+
+  function showDashboard(password) {
+    savedPassword = password;
+    sessionStorage.setItem(SESSION_KEY, password);
+    document.getElementById('lock-screen').style.display = 'none';
+    document.getElementById('dashboard').style.display   = 'block';
+    loadData();
+    refreshTimer = setInterval(loadData, REFRESH_MS);
+  }
+
+  async function loadData() {
+    if (!savedPassword) return;
+
+    let data;
+    try {
+      const res = await fetch(FN_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: savedPassword }),
+      });
+      if (res.status === 401) { showLock(); return; }
+      data = await res.json();
+    } catch {
+      return;
+    }
+
+    // Stat cards
+    document.getElementById('stat-waitlist').textContent    = data.waitlist.length;
+    document.getElementById('stat-mentor-apps').textContent = data.mentorApps.length;
+    document.getElementById('stat-app-mentors').textContent = data.appMentors;
+    document.getElementById('stat-app-students').textContent = data.appStudents;
+
+    // Waitlist table
+    document.getElementById('wl-count').textContent = data.waitlist.length + ' total';
+    const wlBody = document.getElementById('waitlist-body');
+    if (data.waitlist.length === 0) {
+      wlBody.innerHTML = '<tr class="placeholder"><td colspan="4">No signups yet</td></tr>';
+    } else {
+      wlBody.innerHTML = data.waitlist.map((r, i) => `
+        <tr>
+          <td style="color:var(--muted)">${i + 1}</td>
+          <td>${r.email}</td>
+          <td><span class="tag tag-landing">${r.source || 'landing'}</span></td>
+          <td style="color:var(--muted)">${fmt(r.created_at)}</td>
+        </tr>
+      `).join('');
+    }
+
+    // Mentor apps table
+    document.getElementById('ma-count').textContent = data.mentorApps.length + ' total';
+    const maBody = document.getElementById('mentor-apps-body');
+    if (data.mentorApps.length === 0) {
+      maBody.innerHTML = '<tr class="placeholder"><td colspan="5">No applications yet</td></tr>';
+    } else {
+      maBody.innerHTML = data.mentorApps.map((r, i) => `
+        <tr class="clickable-row" data-id="${r.id}">
+          <td style="color:var(--muted)">${i + 1}</td>
+          <td style="font-weight:600">${r.name}</td>
+          <td>${r.email}</td>
+          <td style="color:var(--muted)">${r.expertise}</td>
+          <td style="color:var(--muted)">${fmt(r.created_at)}</td>
+        </tr>
+      `).join('');
+      maBody.querySelectorAll('.clickable-row').forEach((row) => {
+        row.addEventListener('click', () => {
+          const app = data.mentorApps.find(r => r.id === row.dataset.id);
+          if (app) openModal(app);
+        });
+      });
+    }
+
+    // Last updated
+    document.getElementById('last-updated').textContent =
+      'Updated ' + new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+  }
+
+  // Restore session across page reloads
+  const saved = sessionStorage.getItem(SESSION_KEY);
+  if (saved) {
+    showDashboard(saved);
+  }
+
+  // Unlock form
+  document.getElementById('lock-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('unlock-btn');
+    const err = document.getElementById('lock-error');
+    const pw  = document.getElementById('pw-input').value;
+
+    btn.disabled    = true;
+    btn.textContent = '...';
+    err.textContent = '';
+
+    try {
+      const res = await fetch(FN_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: pw }),
+      });
+      if (res.status === 401) {
+        err.textContent = 'Incorrect password.';
+      } else if (!res.ok) {
+        const d = await res.json();
+        err.textContent = d.error || 'Something went wrong.';
+      } else {
+        showDashboard(pw);
+        return;
+      }
+    } catch {
+      err.textContent = 'Could not reach the server. Try again.';
+    }
+
+    btn.disabled    = false;
+    btn.textContent = 'Unlock';
+  });
+
+  document.getElementById('refresh-btn').addEventListener('click', loadData);
+  document.getElementById('lock-btn').addEventListener('click', showLock);
+
+  // Modal
+  function openModal(app) {
+    document.getElementById('modal-name').textContent  = app.name;
+    document.getElementById('modal-date').textContent  = 'Applied ' + fmt(app.created_at);
+    document.getElementById('modal-email').textContent = app.email;
+    document.getElementById('modal-expertise').textContent = app.expertise;
+
+    const expWrap = document.getElementById('modal-experience-wrap');
+    if (app.experience) {
+      document.getElementById('modal-experience').textContent = app.experience;
+      expWrap.style.display = 'block';
+    } else {
+      expWrap.style.display = 'none';
+    }
+
+    const liWrap = document.getElementById('modal-linkedin-wrap');
+    if (app.linkedin) {
+      const url = app.linkedin.startsWith('http') ? app.linkedin : 'https://' + app.linkedin;
+      document.getElementById('modal-linkedin').innerHTML =
+        `<a href="${url}" target="_blank" rel="noopener">${app.linkedin}</a>`;
+      liWrap.style.display = 'block';
+    } else {
+      liWrap.style.display = 'none';
+    }
+
+    document.getElementById('app-modal').classList.add('open');
+  }
+
+  function closeModal() {
+    document.getElementById('app-modal').classList.remove('open');
+  }
+
+  document.getElementById('modal-close').addEventListener('click', closeModal);
+  document.getElementById('app-modal').addEventListener('click', (e) => {
+    if (e.target === e.currentTarget) closeModal();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeModal();
+  });
+</script>
+
+</body>
+</html>

@@ -1,6 +1,7 @@
 import { supabase, checkRateLimit } from './supabase';
 import { Meeting, PostMeetingRating, ActionItem, RescheduleRequest } from './types';
 import { sendBotMessage } from './botMessages';
+import { sanitizeUserText } from './moderation';
 
 function logError(context: string, message: string): void {
   if (__DEV__) console.warn('[Meetings]', context, message);
@@ -208,9 +209,14 @@ export async function submitPostMeetingFeedback(
     logError('[Meetings] submitPostMeetingFeedback', 'Rate limit exceeded');
     return null;
   }
-  if (problemDetails && problemDetails.length > 1000) {
-    logError('[Meetings] submitPostMeetingFeedback', 'Problem details too long');
-    return null;
+  let cleanDetails: string | null = null;
+  if (problemDetails != null) {
+    const r = sanitizeUserText(problemDetails, 1000);
+    if (!r.ok) {
+      logError('[Meetings] submitPostMeetingFeedback', `Rejected details: ${r.reason}`);
+      return null;
+    }
+    cleanDetails = r.value || null;
   }
   const validRating = rating != null && rating >= 1 && rating <= 5 ? rating : null;
 
@@ -222,7 +228,7 @@ export async function submitPostMeetingFeedback(
       ratee_id: rateeId,
       rating: validRating,
       had_problems: hadProblems,
-      problem_details: problemDetails?.trim() ?? null,
+      problem_details: cleanDetails,
     })
     .select()
     .single();
@@ -354,15 +360,18 @@ export async function addActionItem(
     logError('[ActionItems] addActionItem', 'Rate limit exceeded');
     return null;
   }
-  const trimmed = content.trim();
-  if (!trimmed || trimmed.length > 500) return null;
+  const r = sanitizeUserText(content, 500);
+  if (!r.ok || !r.value) {
+    if (!r.ok) logError('[ActionItems] addActionItem', `Rejected: ${r.reason}`);
+    return null;
+  }
 
   const { data, error } = await supabase
     .from('action_items')
     .insert({
       conversation_id: conversationId,
       created_by: createdBy,
-      content: trimmed,
+      content: r.value,
       due_date: dueDate ?? null,
     })
     .select()

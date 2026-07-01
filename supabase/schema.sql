@@ -11,9 +11,10 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- ============================================================
 
 -- Profiles (extends auth.users)
+-- NOTE: this table is readable by everyone (see RLS below), so it must NOT hold
+-- PII. Email lives in the owner-only `private_profiles` table instead.
 CREATE TABLE IF NOT EXISTS profiles (
   id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
-  email TEXT NOT NULL,
   full_name TEXT CHECK (char_length(full_name) <= 100),
   avatar_url TEXT,
   role TEXT CHECK (role IN ('student', 'mentor')) NOT NULL DEFAULT 'student',
@@ -21,7 +22,16 @@ CREATE TABLE IF NOT EXISTS profiles (
   location TEXT CHECK (char_length(location) <= 100),
   website TEXT CHECK (char_length(website) <= 200),
   onboarding_complete BOOLEAN DEFAULT false,
+  signup_source TEXT DEFAULT 'app' CHECK (signup_source IN ('app', 'web')),
   created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Private profile data (owner-only). Holds PII that must never be exposed by the
+-- public `profiles` SELECT policy. Populated by the handle_new_user trigger.
+CREATE TABLE IF NOT EXISTS private_profiles (
+  id UUID PRIMARY KEY REFERENCES profiles(id) ON DELETE CASCADE,
+  email TEXT,
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -55,6 +65,7 @@ CREATE TABLE IF NOT EXISTS mentor_profiles (
   preferred_student_levels TEXT[],  -- grade levels they prefer to mentor
   mentoring_style TEXT CHECK (char_length(mentoring_style) <= 1000),
   languages TEXT[],
+  max_students INTEGER DEFAULT NULL CHECK (max_students >= 1 AND max_students <= 3),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -88,7 +99,7 @@ CREATE TABLE IF NOT EXISTS reviews (
   student_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
   mentor_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
   rating INTEGER CHECK (rating >= 1 AND rating <= 5),
-  comment TEXT,
+  comment TEXT CHECK (comment IS NULL OR char_length(comment) <= 1000),
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(student_id, mentor_id)
@@ -99,6 +110,7 @@ CREATE TABLE IF NOT EXISTS reviews (
 -- ============================================================
 
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE private_profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE student_profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE mentor_profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE conversations ENABLE ROW LEVEL SECURITY;
@@ -107,6 +119,11 @@ ALTER TABLE reviews ENABLE ROW LEVEL SECURITY;
 
 -- Profiles
 CREATE POLICY "Profiles are viewable by everyone" ON profiles FOR SELECT USING (true);
+
+-- Private profiles: owner-only. No public read — this is where PII (email) lives.
+CREATE POLICY "Users manage own private profile" ON private_profiles FOR ALL
+  USING (auth.uid() = id)
+  WITH CHECK (auth.uid() = id);
 CREATE POLICY "Users can insert their own profile" ON profiles FOR INSERT WITH CHECK (auth.uid() = id);
 CREATE POLICY "Users can update their own profile" ON profiles FOR UPDATE
   USING (auth.uid() = id)
@@ -204,19 +221,25 @@ $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 -- FUNCTIONS & TRIGGERS
 -- ============================================================
 
--- Auto-create profile on user signup
+-- Auto-create profile on user signup. Email goes to the owner-only
+-- private_profiles table, never to the publicly-readable profiles row.
 CREATE OR REPLACE FUNCTION handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
-  INSERT INTO profiles (id, email, full_name, avatar_url, role)
+  INSERT INTO profiles (id, full_name, avatar_url, role, signup_source)
   VALUES (
     NEW.id,
-    NEW.email,
     COALESCE(NEW.raw_user_meta_data->>'full_name', NEW.raw_user_meta_data->>'name'),
     NEW.raw_user_meta_data->>'picture',
-    COALESCE(NEW.raw_user_meta_data->>'role', 'student')
+    COALESCE(NEW.raw_user_meta_data->>'role', 'student'),
+    COALESCE(NEW.raw_user_meta_data->>'signup_source', 'app')
   )
   ON CONFLICT (id) DO NOTHING;
+
+  INSERT INTO private_profiles (id, email)
+  VALUES (NEW.id, NEW.email)
+  ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email, updated_at = NOW();
+
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
@@ -224,6 +247,23 @@ $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 CREATE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW EXECUTE FUNCTION handle_new_user();
+
+-- Keep private_profiles.email in sync when a user changes their email.
+CREATE OR REPLACE FUNCTION sync_private_email()
+RETURNS TRIGGER AS $$
+BEGIN
+  IF NEW.email IS DISTINCT FROM OLD.email THEN
+    INSERT INTO private_profiles (id, email)
+    VALUES (NEW.id, NEW.email)
+    ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email, updated_at = NOW();
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+CREATE TRIGGER on_auth_user_email_changed
+  AFTER UPDATE OF email ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION sync_private_email();
 
 -- Auto-update updated_at
 CREATE OR REPLACE FUNCTION update_updated_at()

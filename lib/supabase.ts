@@ -2,14 +2,23 @@ import 'react-native-url-polyfill/auto';
 import { createClient } from '@supabase/supabase-js';
 import * as SecureStore from 'expo-secure-store';
 import * as WebBrowser from 'expo-web-browser';
-import * as AuthSession from 'expo-auth-session';
+import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 import * as FileSystem from 'expo-file-system/legacy';
 import { Platform } from 'react-native';
 import { StudentGoal, VoiceMemo } from './types';
-import { moderateMessage } from './moderation';
+import { moderateMessage, sanitizeUserText } from './moderation';
+import { isValidHttpUrl } from './authUtils';
+import { logError } from './logger';
 
 // Required for OAuth session handling on mobile
 WebBrowser.maybeCompleteAuthSession();
+
+if (Platform.OS !== 'web') {
+  GoogleSignin.configure({
+    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
+    webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+  });
+}
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '';
@@ -46,16 +55,24 @@ const MENTOR_CACHE_TTL = 60_000; // 60 seconds
 
 // ─── Rate Limiting (private) ──────────────────────────────────
 
-export async function checkRateLimit(key: string, maxAttempts = 5, windowMinutes = 15): Promise<boolean> {
+export async function checkRateLimit(
+  key: string,
+  maxAttempts = 5,
+  windowMinutes = 15,
+  failClosed = false,
+): Promise<boolean> {
   const { data, error } = await supabase.rpc('check_rate_limit', {
     p_key: key,
     p_max_attempts: maxAttempts,
     p_window_minutes: windowMinutes,
   });
   if (error) {
-    // Fail open so a broken RPC never blocks users, but log it so we notice outages
-    if (__DEV__) console.warn('[RateLimit] RPC error, failing open:', error.message);
-    return true;
+    // Always log (not just in __DEV__) so a production RPC outage is visible.
+    logError('[RateLimit] RPC error', `${key}: ${error.message}`);
+    // Routine ops fail OPEN so a transient outage never locks users out.
+    // Sensitive, low-frequency ops (password change, account deletion) fail
+    // CLOSED so an attacker can't disable the limiter by forcing RPC errors.
+    return !failClosed;
   }
   return data === true;
 }
@@ -98,7 +115,6 @@ export async function signOut() {
 
 export async function signInWithGoogle() {
   if (Platform.OS === 'web') {
-    // Web: standard redirect flow
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: { redirectTo: window.location.origin },
@@ -106,52 +122,30 @@ export async function signInWithGoogle() {
     return { data, error };
   }
 
-  // makeRedirectUri returns mentara:// in production/dev builds,
-  // and exp://ip:port/--/ in Expo Go — so the browser session closes correctly.
-  const redirectUri = AuthSession.makeRedirectUri({ scheme: 'mentara', path: '/' });
-  if (__DEV__) console.log('[Google OAuth] redirectUri:', redirectUri);
+  try {
+    await GoogleSignin.hasPlayServices();
+    const response = await GoogleSignin.signIn();
 
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: 'google',
-    options: {
-      redirectTo: redirectUri,
-      skipBrowserRedirect: true,
-    },
-  });
-
-  if (error || !data?.url) return { data, error };
-
-  const result = await WebBrowser.openAuthSessionAsync(data.url, redirectUri);
-
-  if (result.type === 'success' && result.url) {
-    const url = result.url;
-    const queryStr = url.includes('?') ? url.split('?')[1]?.split('#')[0] ?? '' : '';
-    const hashStr  = url.includes('#') ? url.split('#')[1] ?? '' : '';
-    const code         = new URLSearchParams(queryStr).get('code');
-    const accessToken  = new URLSearchParams(hashStr).get('access_token');
-    const refreshToken = new URLSearchParams(hashStr).get('refresh_token');
-
-    // Supabase code flow: server returned ?code= in the query string
-    if (code) {
-      try {
-        const { data: sessionData, error: sessionError } = await supabase.auth.exchangeCodeForSession(url);
-        return { data: sessionData, error: sessionError };
-      } catch (e: any) {
-        return { data: null, error: { message: e?.message ?? 'Google sign-in failed. Please try again.' } };
-      }
+    if (response.type === 'cancelled') {
+      return { data: null, error: null };
     }
 
-    // Implicit flow fallback: server returned tokens in the URL hash
-    if (accessToken) {
-      const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
-        access_token: accessToken,
-        refresh_token: refreshToken ?? '',
-      });
-      return { data: sessionData, error: sessionError };
+    const idToken = response.data?.idToken;
+    if (!idToken) {
+      return { data: null, error: { message: 'Google sign-in failed. Please try again.' } };
     }
+
+    const { data, error } = await supabase.auth.signInWithIdToken({
+      provider: 'google',
+      token: idToken,
+    });
+    return { data, error };
+  } catch (e: any) {
+    if (e.code === statusCodes.SIGN_IN_CANCELLED) {
+      return { data: null, error: null };
+    }
+    return { data: null, error: { message: e?.message ?? 'Google sign-in failed. Please try again.' } };
   }
-
-  return { data: null, error: result.type === 'cancel' ? { message: 'Sign-in was cancelled.' } : { message: 'Google sign-in failed. Please try again.' } };
 }
 
 export async function signInWithApple() {
@@ -215,11 +209,21 @@ export async function resetPassword(email: string) {
 // ─── Profile Helpers ─────────────────────────────────────────
 
 export async function getProfile(userId: string) {
+  // `email` lives in the owner-only `private_profiles` table (it must NOT sit in
+  // the publicly-readable `profiles` row). The embedded read only returns the
+  // email row when RLS allows it — i.e. for the signed-in user's own profile,
+  // which is the only case getProfile is ever called for. We flatten it back
+  // onto `email` so callers keep seeing profile.email unchanged.
   const { data, error } = await supabase
     .from('profiles')
-    .select('*')
+    .select('*, private_profiles(email)')
     .eq('id', userId)
     .maybeSingle();
+  if (data) {
+    const pp = (data as any).private_profiles;
+    (data as any).email = Array.isArray(pp) ? (pp[0]?.email ?? null) : (pp?.email ?? null);
+    delete (data as any).private_profiles;
+  }
   return { data, error };
 }
 
@@ -237,9 +241,35 @@ export async function updateProfile(userId: string, updates: Partial<{
   if (!allowed) {
     return { data: null, error: { message: 'Too many profile updates. Please wait before trying again.' } };
   }
+
+  // Validate + moderate user-authored text before it reaches the public profile.
+  const clean: typeof updates = { ...updates };
+  if (clean.full_name !== undefined) {
+    const r = sanitizeUserText(clean.full_name, 100);
+    if (!r.ok) return { data: null, error: { message: r.reason } };
+    clean.full_name = r.value;
+  }
+  if (clean.bio !== undefined) {
+    const r = sanitizeUserText(clean.bio, 500);
+    if (!r.ok) return { data: null, error: { message: r.reason } };
+    clean.bio = r.value;
+  }
+  if (clean.location !== undefined) {
+    const r = sanitizeUserText(clean.location, 100);
+    if (!r.ok) return { data: null, error: { message: r.reason } };
+    clean.location = r.value;
+  }
+  if (clean.website !== undefined && clean.website !== null) {
+    const trimmed = clean.website.trim();
+    if (trimmed.length > 0 && !isValidHttpUrl(trimmed)) {
+      return { data: null, error: { message: 'Please enter a valid website URL starting with https://' } };
+    }
+    clean.website = trimmed;
+  }
+
   const { data, error } = await supabase
     .from('profiles')
-    .update(updates)
+    .update(clean)
     .eq('id', userId)
     .select()
     .single();
@@ -262,9 +292,15 @@ export async function upsertStudentProfile(userId: string, profile: Partial<{
   if (!allowed) {
     return { data: null, error: { message: 'Too many profile updates. Please wait before trying again.' } };
   }
+  const clean = { ...profile };
+  if (clean.learning_goals !== undefined) {
+    const r = sanitizeUserText(clean.learning_goals, 1000);
+    if (!r.ok) return { data: null, error: { message: r.reason } };
+    clean.learning_goals = r.value;
+  }
   const { data, error } = await supabase
     .from('student_profiles')
-    .upsert({ id: userId, ...profile })
+    .upsert({ id: userId, ...clean })
     .select()
     .single();
   return { data, error };
@@ -302,17 +338,52 @@ export async function upsertMentorProfile(userId: string, profile: Partial<{
   preferred_student_levels: string[];
   mentoring_style: string;
   languages: string[];
+  max_students: number;
 }>) {
   const allowed = await checkRateLimit(`mentor_profile:${userId}`, 10, 15);
   if (!allowed) {
     return { data: null, error: { message: 'Too many profile updates. Please wait before trying again.' } };
   }
+  const clean = { ...profile };
+  const textFields: { key: 'title' | 'institution' | 'mentoring_style'; max: number }[] = [
+    { key: 'title', max: 150 },
+    { key: 'institution', max: 200 },
+    { key: 'mentoring_style', max: 1000 },
+  ];
+  for (const f of textFields) {
+    if (clean[f.key] !== undefined) {
+      const r = sanitizeUserText(clean[f.key], f.max);
+      if (!r.ok) return { data: null, error: { message: r.reason } };
+      clean[f.key] = r.value;
+    }
+  }
+  if (clean.linkedin_url !== undefined && clean.linkedin_url) {
+    const trimmed = clean.linkedin_url.trim();
+    if (trimmed.length > 0 && !isValidHttpUrl(trimmed)) {
+      return { data: null, error: { message: 'Please enter a valid LinkedIn URL starting with https://' } };
+    }
+    clean.linkedin_url = trimmed;
+  }
   const { data, error } = await supabase
     .from('mentor_profiles')
-    .upsert({ id: userId, ...profile })
+    .upsert({ id: userId, ...clean })
     .select()
     .single();
   // Bust the mentor detail cache so the next read shows the updated profile
+  if (!error) _mentorDetailCache.delete(userId);
+  return { data, error };
+}
+
+export async function updateMentorCapacity(userId: string, maxStudents: 1 | 2 | 3) {
+  const allowed = await checkRateLimit(`mentor_capacity:${userId}`, 10, 15);
+  if (!allowed) {
+    return { data: null, error: { message: 'Too many updates. Please wait before trying again.' } };
+  }
+  const { data, error } = await supabase
+    .from('mentor_profiles')
+    .upsert({ id: userId, max_students: maxStudents })
+    .select()
+    .single();
   if (!error) _mentorDetailCache.delete(userId);
   return { data, error };
 }
@@ -487,7 +558,7 @@ export async function deleteAccount() {
     return { error: { message: 'You must be signed in to delete your account.' } };
   }
 
-  const allowed = await checkRateLimit(`delete_account:${session.user.id}`, 3, 60);
+  const allowed = await checkRateLimit(`delete_account:${session.user.id}`, 3, 60, true);
   if (!allowed) {
     return { error: { message: 'Too many deletion attempts. Please wait before trying again.' } };
   }
@@ -544,13 +615,21 @@ export async function addStudentGoal(
   const allowed = await checkRateLimit(`add_goal:${studentId}`, 20, 15);
   if (!allowed) return null;
   const trimmed = title.trim();
-  if (!trimmed || trimmed.length < 3 || trimmed.length > 200) return null;
+  if (!trimmed || trimmed.length < 3) return null;
+  const titleCheck = sanitizeUserText(trimmed, 200);
+  if (!titleCheck.ok) return null;
+  let cleanDescription: string | null = null;
+  if (description !== undefined && description !== null) {
+    const descCheck = sanitizeUserText(description, 1000);
+    if (!descCheck.ok) return null;
+    cleanDescription = descCheck.value || null;
+  }
   const { data, error } = await supabase
     .from('student_goals')
     .insert({
       student_id: studentId,
-      title: trimmed,
-      description: description ?? null,
+      title: titleCheck.value,
+      description: cleanDescription,
       target_date: targetDate ?? null,
       ...(idempotencyKey ? { client_idempotency_key: idempotencyKey } : {}),
     })
@@ -793,7 +872,7 @@ export async function updatePassword(newPassword: string) {
   }
   const { data: { user } } = await supabase.auth.getUser();
   if (user) {
-    const allowed = await checkRateLimit(`password_update:${user.id}`, 3, 60);
+    const allowed = await checkRateLimit(`password_update:${user.id}`, 3, 60, true);
     if (!allowed) {
       return { data: null, error: { message: 'Too many password update attempts. Please wait an hour before trying again.' } };
     }

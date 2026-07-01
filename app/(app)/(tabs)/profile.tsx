@@ -12,6 +12,7 @@ import Avatar from '@/components/ui/Avatar';
 import Button from '@/components/ui/Button';
 import { Colors, Fonts, Typography, Radius, Shadow, Spacing, FIELDS_OF_EXPERTISE } from '@/constants/theme';
 import { updateProfile, upsertMentorProfile, upsertStudentProfile, uploadAvatar, getStudentProfile, getMentorById, deleteAccount, getMyReferralCode, getMyReferrals, getUserAchievements } from '@/lib/supabase';
+import { isValidHttpUrl } from '@/lib/authUtils';
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
@@ -102,8 +103,8 @@ export default function ProfileScreen() {
       return;
     }
     const trimmedWebsite = website.trim();
-    if (trimmedWebsite && !trimmedWebsite.startsWith('https://') && !trimmedWebsite.startsWith('http://')) {
-      Alert.alert('Invalid website', 'Website must start with https:// or http://');
+    if (trimmedWebsite && !isValidHttpUrl(trimmedWebsite)) {
+      Alert.alert('Invalid website', 'Please enter a valid website URL that starts with https://');
       return;
     }
     setSaving(true);
@@ -323,7 +324,7 @@ export default function ProfileScreen() {
             {/* Contact info */}
             <View style={styles.card}>
               <Text style={styles.cardTitle}>Details</Text>
-              <InfoRow icon="mail-outline" label="Email" value={profile.email} />
+              {profile.email && <InfoRow icon="mail-outline" label="Email" value={profile.email} />}
               {profile.location && <InfoRow icon="location-outline" label="Location" value={profile.location} />}
               {profile.website && <InfoRow icon="globe-outline" label="Website" value={profile.website} />}
               {!isStudent && extProfile?.institution && (

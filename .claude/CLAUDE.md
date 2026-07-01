@@ -1,5 +1,22 @@
 # Mentara — Claude Code Project Instructions
 
+## Writing Style Rules (ALWAYS)
+
+- NEVER use the em dash character (—) anywhere. This applies to everything:
+  questions, code comments, commit messages, emails, on-screen UI copy, captions,
+  alt text, documentation, and your own chat answers. Use a hyphen, comma, colon,
+  parentheses, or a reworded sentence instead. The en dash (–) as a sentence
+  break is also banned; only use it inside numeric ranges (for example 13-17).
+- This rule overrides any default formatting habit.
+
+## Security
+
+- A repeatable security audit lives in the `security-scan` skill
+  (`.claude/skills/security-scan/SKILL.md`). Run it for any "scan/check/audit
+  for vulnerabilities" request or before a release. It covers exposed secrets,
+  input validation/sanitization, RLS coverage, edge-function auth, and content
+  safety, and reports findings with fix options.
+
 ## Project Overview
 
 Mentara is a React Native 0.81.5 + Expo 54 + expo-router 6 mobile app connecting students with mentors. Backend: Supabase (auth + PostgreSQL + realtime + storage). Language: TypeScript. Build target: iOS App Store via EAS Build.

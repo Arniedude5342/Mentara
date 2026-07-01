@@ -203,6 +203,13 @@ export default function LoginScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
+          {/* Website account hint */}
+          <View style={styles.websiteHint}>
+            <Text style={styles.websiteHintText}>
+              * Signed up on mentara.me? Your account works here.
+            </Text>
+          </View>
+
           {/* Google */}
           <TouchableOpacity
             style={[styles.googleBtn, (googleLoading || loading || !!lockoutUntil) && styles.btnDisabled]}
@@ -371,6 +378,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.md,
     gap: 0,
+  },
+
+  // Website account hint
+  websiteHint: {
+    backgroundColor: Colors.primaryLight,
+    borderRadius: Radius.sm,
+    paddingVertical: 9,
+    paddingHorizontal: 12,
+    marginBottom: 16,
+    borderLeftWidth: 3,
+    borderLeftColor: Colors.primary,
+  },
+  websiteHintText: {
+    ...Typography.bodySm,
+    color: Colors.primary,
+    fontFamily: Fonts.sansSemiBold,
+    lineHeight: 18,
   },
 
   // Google button

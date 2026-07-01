@@ -26,16 +26,31 @@ const PLATFORM_LABEL: Record<Meeting['platform'], string> = {
   other: 'video call',
 };
 
+function formatTime(ts: string): string {
+  const date = new Date(ts);
+  const now = new Date();
+  const diffMins = Math.floor((now.getTime() - date.getTime()) / 60000);
+  if (diffMins < 1) return 'now';
+  if (diffMins < 60) return `${diffMins}m`;
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours < 24) return `${diffHours}h`;
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 7) return date.toLocaleDateString('en-US', { weekday: 'short' });
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
 // ─── Inline chat embedded in the tab (student or mentor) ─────────────────────
 
 function InlineChat({
   conversationId,
   userId,
   role,
+  onBack,
 }: {
   conversationId: string;
   userId: string;
   role: 'student' | 'mentor';
+  onBack?: () => void;
 }) {
   const insets = useSafeAreaInsets();
   const { profile } = useAuth();
@@ -161,8 +176,18 @@ function InlineChat({
 
   return (
     <>
-      {/* ── Chat header (no back button — we're in the tab) ─── */}
+      {/* ── Chat header ───────────────────────────────────── */}
       <View style={styles.chatHeader}>
+        {onBack && (
+          <TouchableOpacity
+            onPress={onBack}
+            style={styles.chatBackBtn}
+            accessibilityRole="button"
+            accessibilityLabel="Back to student list"
+          >
+            <Ionicons name="arrow-back" size={20} color={Colors.gray700} />
+          </TouchableOpacity>
+        )}
         <TouchableOpacity
           style={styles.headerUser}
           onPress={() => mentorId && router.push(`/(app)/mentor/${mentorId}` as any)}
@@ -385,6 +410,7 @@ export default function MessagesScreen() {
   const insets = useSafeAreaInsets();
   const { user, profile } = useAuth();
   const { conversations, loading } = useConversations(user?.id ?? '');
+  const [selectedConvoId, setSelectedConvoId] = useState<string | null>(null);
 
   const isStudent = profile?.role === 'student';
 
@@ -454,7 +480,7 @@ export default function MessagesScreen() {
     );
   }
 
-  // ── Mentor path: inline chat (always 1:1) ─────────────────────────────────
+  // ── Mentor path ───────────────────────────────────────────────────────────
   if (loading) {
     return (
       <View style={[styles.root, styles.center, { paddingTop: insets.top }]}>
@@ -462,7 +488,8 @@ export default function MessagesScreen() {
       </View>
     );
   }
-  if (!loading && conversations.length === 0) {
+
+  if (conversations.length === 0) {
     return (
       <View style={[styles.root, { paddingTop: insets.top }]}>
         <View style={[styles.header, { backgroundColor: Colors.mentorHeaderBg }]}>
@@ -484,20 +511,88 @@ export default function MessagesScreen() {
     );
   }
 
-  const mentorConvoId = conversations[0]?.id;
-  if (!mentorConvoId) {
+  // Single student: go straight into the chat (no picker needed)
+  // Multiple students: show picker unless one has already been selected
+  const convoToShow =
+    conversations.length === 1
+      ? conversations[0].id
+      : selectedConvoId;
+
+  if (convoToShow) {
     return (
-      <View style={[styles.root, styles.center, { paddingTop: insets.top }]}>
-        <ActivityIndicator size="large" color={Colors.accent2} />
+      <View style={[styles.root, { paddingTop: insets.top }]}>
+        <InlineChat
+          conversationId={convoToShow}
+          userId={user!.id}
+          role="mentor"
+          onBack={conversations.length > 1 ? () => setSelectedConvoId(null) : undefined}
+        />
       </View>
     );
   }
+
+  // ── Student picker (mentor with 2+ students) ──────────────────────────────
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
-      <InlineChat
-        conversationId={mentorConvoId}
-        userId={user!.id}
-        role="mentor"
+      <View style={[styles.header, { backgroundColor: Colors.mentorHeaderBg }]}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.eyebrowText}>CALLS</Text>
+          <Text style={styles.title}>Call Threads</Text>
+        </View>
+        <View style={styles.countPill}>
+          <Text style={styles.countPillText}>{conversations.length}</Text>
+        </View>
+      </View>
+      <FlatList
+        data={conversations}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.list}
+        ItemSeparatorComponent={() => <View style={styles.separator} />}
+        renderItem={({ item }) => {
+          const student = (item as any).student;
+          const isUnread = item.mentor_unread > 0;
+          return (
+            <TouchableOpacity
+              style={[styles.convoItem, isUnread && styles.convoItemUnread]}
+              onPress={() => setSelectedConvoId(item.id)}
+              activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel={`Chat with ${student?.full_name ?? 'student'}`}
+            >
+              {isUnread && <View style={styles.unreadAccent} />}
+              <Avatar uri={student?.avatar_url} name={student?.full_name} size={46} />
+              <View style={styles.convoInfo}>
+                <View style={styles.convoTop}>
+                  <Text
+                    style={[styles.convoName, isUnread && styles.convoNameUnread]}
+                    numberOfLines={1}
+                  >
+                    {student?.full_name ?? 'Student'}
+                  </Text>
+                  <Text style={[styles.convoTime, isUnread && styles.convoTimeUnread]}>
+                    {formatTime(item.last_message_at)}
+                  </Text>
+                </View>
+                <View style={styles.convoBottom}>
+                  <Text
+                    style={[styles.convoLast, isUnread && styles.convoLastBold]}
+                    numberOfLines={1}
+                  >
+                    {item.last_message ?? 'No messages yet'}
+                  </Text>
+                  {isUnread && (
+                    <View style={styles.unreadOuter}>
+                      <View style={styles.unreadInner}>
+                        <Text style={styles.unreadText}>{item.mentor_unread}</Text>
+                      </View>
+                    </View>
+                  )}
+                </View>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={Colors.gray300} />
+            </TouchableOpacity>
+          );
+        }}
       />
     </View>
   );
@@ -550,6 +645,13 @@ const styles = StyleSheet.create({
   discoverArrow: {
     width: 24, height: 24,
     backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center',
+  },
+
+  // ── Chat back button (multi-student mentor only) ──────────────────────────
+  chatBackBtn: {
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: Colors.gray100, alignItems: 'center', justifyContent: 'center',
+    flexShrink: 0,
   },
 
   // ── Student inline chat: header ───────────────────────────────────────────

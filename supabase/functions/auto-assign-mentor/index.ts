@@ -3,10 +3,11 @@ import { sendPushToUser } from '../_shared/push.ts';
 
 // Edge Function: auto-assign-mentor
 // Called at the end of student onboarding to automatically match a student
-// with the best available mentor using Claude AI.
+// with the best available mentor using Gemini AI.
+// Respects each mentor's individual max_students capacity preference.
 
 const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': 'https://mentara.me',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Authorization, Content-Type',
 };
@@ -18,7 +19,8 @@ function json(body: object, status = 200) {
   });
 }
 
-const MAX_STUDENTS_PER_MENTOR = 1;
+// Fallback capacity used when a mentor has not yet set max_students
+const DEFAULT_MAX_STUDENTS = 1;
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS_HEADERS });
@@ -87,6 +89,7 @@ Deno.serve(async (req: Request) => {
         preferred_student_levels,
         mentoring_style,
         rating,
+        max_students,
         profile:profiles!mentor_profiles_id_fkey(full_name)
       `)
       .overlaps('fields_of_expertise', fields_of_interest)
@@ -97,8 +100,8 @@ Deno.serve(async (req: Request) => {
       return json({ assigned: false, reason: 'No available mentors in your field yet' });
     }
 
-    // 4. Exclude mentors who already have MAX_STUDENTS_PER_MENTOR active assignments
-    //    (safety net against race conditions — is_available is the primary guard)
+    // 4. Exclude mentors who have already reached their individual max_students capacity.
+    //    is_available is the primary guard; this is a safety net against race conditions.
     const candidateIds = candidateMentors.map((m: any) => m.id);
     const { data: fullAssignments } = await supabase
       .from('mentor_assignments')
@@ -110,9 +113,11 @@ Deno.serve(async (req: Request) => {
     for (const a of fullAssignments ?? []) {
       assignmentCounts.set(a.mentor_id, (assignmentCounts.get(a.mentor_id) ?? 0) + 1);
     }
-    const availableMentors = candidateMentors.filter(
-      (m: any) => (assignmentCounts.get(m.id) ?? 0) < MAX_STUDENTS_PER_MENTOR
-    );
+    // Each mentor's limit comes from their own max_students preference (default 1 if unset)
+    const availableMentors = candidateMentors.filter((m: any) => {
+      const limit = (m.max_students as number | null) ?? DEFAULT_MAX_STUDENTS;
+      return (assignmentCounts.get(m.id) ?? 0) < limit;
+    });
 
     if (availableMentors.length === 0) {
       return json({ assigned: false, reason: 'No available mentors in your field yet' });
@@ -230,14 +235,20 @@ Return ONLY valid JSON with this exact structure:
       return json({ error: 'Failed to save assignment', assigned: false }, 500);
     }
 
-    // 8. Mark mentor as unavailable so they don't appear in future match queries
-    const { error: availError } = await supabase
-      .from('mentor_profiles')
-      .update({ is_available: false })
-      .eq('id', matchResult.mentor_id);
-
-    if (availError) {
-      console.error('[auto-assign-mentor] Failed to mark mentor unavailable:', availError.message);
+    // 8. Re-check mentor's current load. If they have now reached their max_students
+    //    limit after this assignment, mark them unavailable so they won't be queried
+    //    in future rounds. If they still have capacity, leave is_available = true.
+    const assignedMentor = availableMentors.find((m: any) => m.id === matchResult.mentor_id);
+    const mentorLimit = (assignedMentor?.max_students as number | null) ?? DEFAULT_MAX_STUDENTS;
+    const newCount = (assignmentCounts.get(matchResult.mentor_id) ?? 0) + 1;
+    if (newCount >= mentorLimit) {
+      const { error: availError } = await supabase
+        .from('mentor_profiles')
+        .update({ is_available: false })
+        .eq('id', matchResult.mentor_id);
+      if (availError) {
+        console.error('[auto-assign-mentor] Failed to mark mentor unavailable:', availError.message);
+      }
     }
 
     // 10. Trigger generate-call-topics in the background

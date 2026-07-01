@@ -1,0 +1,76 @@
+# Supabase local/deploy config.
+# Scope here is intentionally narrow: pin `verify_jwt` per Edge Function so the
+# API gateway enforces authentication consistently (defense in depth) instead of
+# relying on whatever flag each function happened to be deployed with. All other
+# settings use Supabase CLI defaults.
+#
+# project_id is a local label only (container naming); it is not the project ref
+# and holds no secret. Adjust if your local setup expects a different value.
+project_id = "mentara"
+
+# ──────────────────────────────────────────────────────────────
+# verify_jwt = true
+#   Gateway requires a valid JWT. Safe because every caller sends one:
+#   the app attaches the signed-in user's token, and internal callers send the
+#   service-role key. This blocks unauthenticated/anonymous invocation.
+# ──────────────────────────────────────────────────────────────
+[functions.bot-message-handler]
+verify_jwt = true
+
+[functions.delete-account]
+verify_jwt = true
+
+[functions.notify-new-message]
+verify_jwt = true
+
+[functions.process-voice-memo]
+verify_jwt = true
+
+[functions.report-triage]
+verify_jwt = true
+
+[functions.send-meeting-invite]
+verify_jwt = true
+
+[functions.send-push-notification]
+verify_jwt = true
+
+# ──────────────────────────────────────────────────────────────
+# verify_jwt = false
+#   Must accept callers that do NOT present a Supabase user JWT. Each one
+#   self-protects:
+#     - internal-secret functions check a shared INTERNAL_FUNCTION_SECRET
+#     - respond-to-meeting-invite validates an HMAC token from an email link (GET)
+#     - send-meeting-confirmation is also invoked internally with the service key
+#   Forcing verify_jwt = true here would break these flows, so they stay open at
+#   the gateway and enforce auth in code.
+# ──────────────────────────────────────────────────────────────
+[functions.auto-assign-mentor]
+verify_jwt = false
+
+[functions.auto-verify-mentor]
+verify_jwt = false
+
+[functions.generate-call-topics]
+verify_jwt = false
+
+[functions.match-waiting-students]
+verify_jwt = false
+
+[functions.notify-admin-new-mentor]
+verify_jwt = false
+
+[functions.notify-meeting-reminder]
+verify_jwt = false
+
+[functions.post-meeting-checkin]
+verify_jwt = false
+
+[functions.respond-to-meeting-invite]
+verify_jwt = false
+
+[functions.send-meeting-confirmation]
+verify_jwt = false
+
+[functions.verify-mentor]
+verify_jwt = false

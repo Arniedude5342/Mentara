@@ -12,7 +12,7 @@ import Logo from '@/components/Logo';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import { Colors, Fonts, Typography, Radius, Shadow, Spacing } from '@/constants/theme';
-import { signUp, signInWithGoogle, signInWithApple, updateProfile } from '@/lib/supabase';
+import { signUp, signInWithGoogle, signInWithApple, updateProfile, signOut } from '@/lib/supabase';
 import { isValidEmail, mapAuthError, sanitizeEmail, getPasswordStrength } from '@/lib/authUtils';
 import { useAuth } from '@/context/AuthContext';
 import GoogleLogo from '@/components/GoogleLogo';
@@ -51,27 +51,47 @@ export default function RegisterScreen() {
   const { session, loading: authLoading, profile } = useAuth();
   const { defaultRole } = useLocalSearchParams<{ defaultRole?: string }>();
 
-  useEffect(() => {
-    if (!authLoading && session) {
-      // profile null = no row found after retries; send to onboarding to create it
-      if (!profile || !profile.onboarding_complete) {
-        router.replace('/(auth)/onboarding');
-      } else {
-        router.replace('/(app)/(tabs)/home');
-      }
-    }
-  }, [session, authLoading, profile]);
-
+  const [role, setRole] = useState<Role>(defaultRole === 'mentor' ? 'mentor' : 'student');
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role, setRole] = useState<Role>(defaultRole === 'mentor' ? 'mentor' : 'student');
 
   const heroBg = role === 'student' ? Colors.primaryDark : Colors.gray900;
   const linkColor = role === 'student' ? Colors.primary : Colors.accent2;
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [appleAvailable, setAppleAvailable] = useState(false);
+
+  useEffect(() => {
+    if (!authLoading && session) {
+      if (!profile || !profile.onboarding_complete) {
+        router.replace('/(auth)/onboarding');
+      } else if (profile.role !== role) {
+        // Existing account signed in via OAuth but its role doesn't match what
+        // the user selected on the register screen. Show a clear choice rather
+        // than silently routing them into the wrong dashboard.
+        const existingRole = profile.role as string;
+        const intendedRole = role as string;
+        Alert.alert(
+          `You already have a ${existingRole} account`,
+          `This login is registered as a ${existingRole}, not a ${intendedRole}. Sign in as a ${existingRole} instead?`,
+          [
+            {
+              text: `Yes, sign in as ${existingRole}`,
+              onPress: () => router.replace('/(app)/(tabs)/home'),
+            },
+            {
+              text: 'Use a different account',
+              style: 'cancel',
+              onPress: () => { signOut(); },
+            },
+          ]
+        );
+      } else {
+        router.replace('/(app)/(tabs)/home');
+      }
+    }
+  }, [session, authLoading, profile, role]);
 
   // Entrance animations
   const heroAnim  = useRef(new Animated.Value(0)).current;
@@ -106,7 +126,13 @@ export default function RegisterScreen() {
     } catch {}
     const { error } = await signInWithApple();
     setLoading(false);
-    if (error) Alert.alert('Apple Sign Up Failed', error.message);
+    if (error) {
+      if (/user already registered|already been registered|already exists/i.test(error.message)) {
+        alertDuplicate();
+      } else {
+        Alert.alert('Apple Sign Up Failed', mapAuthError(error.message));
+      }
+    }
   };
 
   const handleGoogleRegister = async () => {
@@ -119,7 +145,13 @@ export default function RegisterScreen() {
     } catch {}
     const { error } = await signInWithGoogle();
     setLoading(false);
-    if (error) Alert.alert('Google Sign Up Failed', mapAuthError(error.message));
+    if (error) {
+      if (/user already registered|already been registered|already exists/i.test(error.message)) {
+        alertDuplicate();
+      } else {
+        Alert.alert('Google Sign Up Failed', mapAuthError(error.message));
+      }
+    }
   };
 
   const validate = () => {
@@ -134,6 +166,18 @@ export default function RegisterScreen() {
     return Object.keys(e).length === 0;
   };
 
+  const goSignIn = () => router.replace('/(auth)/login');
+
+  const alertDuplicate = () =>
+    Alert.alert(
+      'Account Already Exists',
+      'An account with this email already exists. Sign in instead.',
+      [
+        { text: 'Sign In', onPress: goSignIn },
+        { text: 'Cancel', style: 'cancel' },
+      ]
+    );
+
   const handleRegister = async () => {
     if (!validate()) return;
     setLoading(true);
@@ -142,7 +186,11 @@ export default function RegisterScreen() {
     });
     if (error) {
       setLoading(false);
-      Alert.alert('Registration Failed', mapAuthError(error.message));
+      if (/user already registered|already been registered|already exists/i.test(error.message)) {
+        alertDuplicate();
+      } else {
+        Alert.alert('Registration Failed', mapAuthError(error.message));
+      }
       return;
     }
     if (!data) {
@@ -155,17 +203,13 @@ export default function RegisterScreen() {
     } else if (data.user?.email_confirmed_at) {
       // Supabase returns a confirmed existing user silently — email already registered
       setLoading(false);
-      Alert.alert(
-        'Account Already Exists',
-        `An account with this email already exists as a ${data.user.user_metadata?.role ?? 'user'}. Please sign in instead.`,
-        [{ text: 'Sign In', onPress: () => router.replace('/(auth)/login') }]
-      );
+      alertDuplicate();
     } else {
       setLoading(false);
       Alert.alert(
         'Check Your Email',
         `We sent a confirmation link to ${sanitizeEmail(email)}. Tap it to activate your account, then sign in.`,
-        [{ text: 'OK', onPress: () => router.replace('/(auth)/login') }]
+        [{ text: 'OK', onPress: goSignIn }]
       );
     }
   };
@@ -257,6 +301,13 @@ export default function RegisterScreen() {
                 );
               })}
             </View>
+          </View>
+
+          {/* Website account hint */}
+          <View style={styles.websiteHint}>
+            <Text style={styles.websiteHintText}>
+              * Already signed up on mentara.me? Sign in instead.
+            </Text>
           </View>
 
           {/* Google */}
@@ -440,6 +491,23 @@ const styles = StyleSheet.create({
   roleOptionTextActive: { color: Colors.primary },
   roleOptionDesc: { ...Typography.bodySm, color: Colors.gray400 },
   roleOptionDescActive: { color: Colors.primaryMuted },
+
+  // Website account hint
+  websiteHint: {
+    backgroundColor: Colors.primaryLight,
+    borderRadius: Radius.sm,
+    paddingVertical: 9,
+    paddingHorizontal: 12,
+    marginBottom: 16,
+    borderLeftWidth: 3,
+    borderLeftColor: Colors.primary,
+  },
+  websiteHintText: {
+    ...Typography.bodySm,
+    color: Colors.primary,
+    fontFamily: Fonts.sansSemiBold,
+    lineHeight: 18,
+  },
 
   // Buttons
   googleBtn: {

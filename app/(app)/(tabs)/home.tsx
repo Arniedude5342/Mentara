@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  RefreshControl, Modal,
+  RefreshControl, Modal, Alert,
 } from 'react-native';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -11,7 +11,7 @@ import { useAuth } from '@/context/AuthContext';
 import Avatar from '@/components/ui/Avatar';
 import GoalMapCard from '@/components/GoalMapCard';
 import { Colors, Fonts, Typography, Radius, Shadow, Spacing, FIELD_COLORS } from '@/constants/theme';
-import { getStudentProfile, getRecentVoiceMemos, getMentorProfile, getReferredByInfo } from '@/lib/supabase';
+import { getStudentProfile, getRecentVoiceMemos, getMentorProfile, getReferredByInfo, updateMentorCapacity } from '@/lib/supabase';
 import { getMentorStudents, getMentorMeetings } from '@/lib/meetings';
 import { VoiceMemo, Meeting } from '@/lib/types';
 
@@ -154,6 +154,8 @@ export default function HomeScreen() {
   const [mentorVerificationStatus, setMentorVerificationStatus] = useState<'pending' | 'verified' | 'rejected' | null>(null);
   const [nextMeeting, setNextMeeting] = useState<Meeting | null>(null);
   const [mentorProfileData, setMentorProfileData] = useState<any>(null);
+  const [capacitySelection, setCapacitySelection] = useState<1 | 2 | 3>(1);
+  const [savingCapacity, setSavingCapacity] = useState(false);
 
   const [referredByName, setReferredByName] = useState<string | null>(null);
   const [referralBannerDismissed, setReferralBannerDismissed] = useState(true);
@@ -212,6 +214,9 @@ export default function HomeScreen() {
         if (!cancelled && data) {
           setMentorVerificationStatus(data.verification_status ?? 'pending');
           setMentorProfileData(data);
+          if (data.max_students != null) {
+            setCapacitySelection(data.max_students as 1 | 2 | 3);
+          }
         }
       });
     }
@@ -242,6 +247,9 @@ export default function HomeScreen() {
       if (mp) {
         setMentorVerificationStatus(mp.verification_status ?? 'pending');
         setMentorProfileData(mp);
+        if (mp.max_students != null) {
+          setCapacitySelection(mp.max_students as 1 | 2 | 3);
+        }
       }
     }
     setRefreshing(false);
@@ -263,6 +271,23 @@ export default function HomeScreen() {
   const profilePct = useMemo(() => profileFields.length > 0
     ? Math.round(profileFields.filter(f => f.done).length / profileFields.length * 100)
     : 0, [profileFields]);
+
+  const handleSaveCapacity = async () => {
+    if (!user) return;
+    setSavingCapacity(true);
+    try {
+      const { error } = await updateMentorCapacity(user.id, capacitySelection);
+      if (error) {
+        Alert.alert('Error', error.message ?? 'Could not save your preference.');
+      } else {
+        setMentorProfileData((prev: any) => prev ? { ...prev, max_students: capacitySelection } : prev);
+      }
+    } catch {
+      Alert.alert('Error', 'Could not save your preference. Please try again.');
+    } finally {
+      setSavingCapacity(false);
+    }
+  };
 
   // Student's primary field for Card D
   const studentFirstField = !isStudent && mentorStudents.length > 0
@@ -463,6 +488,73 @@ export default function HomeScreen() {
               >
                 <Ionicons name="chatbubble-outline" size={14} color={Colors.white} />
               </TouchableOpacity>
+            </View>
+          )}
+
+          {/* ── Mentor: Student Capacity Card ───────────────────── */}
+          {!isStudent && mentorProfileData && mentorProfileData.max_students == null && (
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <View style={styles.sectionTitleGroup}>
+                  <SectionLabel text="QUICK QUESTION" color={theme.primary} />
+                  <Text style={styles.sectionTitle}>How many students?</Text>
+                </View>
+              </View>
+              <View style={styles.capacityCard}>
+                <View style={[styles.capacityDisclaimerRow, { borderColor: theme.primary + '30', backgroundColor: theme.primary + '0A' }]}>
+                  <Ionicons name="time-outline" size={15} color={theme.primary} style={{ flexShrink: 0, marginTop: 1 }} />
+                  <Text style={styles.capacityDisclaimerText}>
+                    Each student adds roughly{' '}
+                    <Text style={{ fontWeight: '700' }}>1-1.5 hrs/month.</Text>{' '}
+                    With up to 3 students you invest at most{' '}
+                    <Text style={{ fontWeight: '700' }}>3 hrs/month</Text>{' '}
+                    while helping{' '}
+                    <Text style={{ fontWeight: '700' }}>2-3x more students</Text>{' '}
+                    grow.
+                  </Text>
+                </View>
+                <View style={styles.capacityChips}>
+                  {([1, 2, 3] as const).map((n) => (
+                    <TouchableOpacity
+                      key={n}
+                      style={[
+                        styles.capacityChip,
+                        capacitySelection === n && { borderColor: theme.primary, backgroundColor: theme.light },
+                      ]}
+                      onPress={() => setCapacitySelection(n)}
+                      accessibilityRole="button"
+                      accessibilityLabel={`${n} student${n > 1 ? 's' : ''}`}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={[
+                        styles.capacityChipNum,
+                        { color: capacitySelection === n ? theme.primary : Colors.gray700 },
+                      ]}>
+                        {n}
+                      </Text>
+                      <Text style={[
+                        styles.capacityChipLabel,
+                        { color: capacitySelection === n ? theme.primary : Colors.gray400 },
+                      ]}>
+                        {n === 1 ? 'student' : 'students'}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                <TouchableOpacity
+                  style={[styles.capacitySaveBtn, { backgroundColor: theme.primary }]}
+                  onPress={handleSaveCapacity}
+                  disabled={savingCapacity}
+                  accessibilityRole="button"
+                  accessibilityLabel="Save student capacity preference"
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.capacitySaveBtnText}>
+                    {savingCapacity ? 'Saving...' : 'Save Preference'}
+                  </Text>
+                  {!savingCapacity && <Ionicons name="checkmark" size={15} color={Colors.white} />}
+                </TouchableOpacity>
+              </View>
             </View>
           )}
 
@@ -948,6 +1040,41 @@ const styles = StyleSheet.create({
     paddingVertical: 11, borderRadius: Radius.md,
   },
   profileCardBtnText: {
+    fontFamily: Fonts.sansBold, fontSize: 14, color: Colors.white,
+  },
+
+  // Capacity card (home page)
+  capacityCard: {
+    backgroundColor: Colors.white, borderRadius: Radius.xl,
+    padding: 16, borderWidth: 1, borderColor: Colors.border,
+    gap: 14, ...Shadow.sm,
+  },
+  capacityDisclaimerRow: {
+    flexDirection: 'row', alignItems: 'flex-start', gap: 9,
+    borderWidth: 1, borderRadius: Radius.md, padding: 12,
+  },
+  capacityDisclaimerText: {
+    flex: 1, fontSize: 12, color: Colors.gray500, lineHeight: 18,
+  },
+  capacityChips: {
+    flexDirection: 'row', gap: 10,
+  },
+  capacityChip: {
+    flex: 1, alignItems: 'center', paddingVertical: 14,
+    backgroundColor: Colors.white, borderRadius: Radius.lg,
+    borderWidth: 1.5, borderColor: Colors.gray200,
+  },
+  capacityChipNum: {
+    fontSize: 24, fontWeight: '800',
+  },
+  capacityChipLabel: {
+    fontSize: 11, fontWeight: '600', marginTop: 2,
+  },
+  capacitySaveBtn: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    paddingVertical: 12, borderRadius: Radius.md,
+  },
+  capacitySaveBtnText: {
     fontFamily: Fonts.sansBold, fontSize: 14, color: Colors.white,
   },
 

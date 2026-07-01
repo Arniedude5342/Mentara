@@ -20,9 +20,9 @@
   <meta name="twitter:image" content="https://mentara.me/og-image.png" />
   <meta name="theme-color" content="#0D4F5C" />
 
-  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
-  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
-  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png?v=2" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png?v=2" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=2" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -266,32 +266,84 @@
         </ul>
       </div>
 
-      <div class="form-card">
-        <h3>Apply to be a founding mentor</h3>
-        <p class="form-card-sub">Under a minute to apply. We'll be in touch before we launch.</p>
-        <form class="js-mentor" novalidate>
+      <div class="form-card" id="mentor-wizard-card">
+        <h3>Become a founding mentor</h3>
+        <div class="wizard-header">
+          <span class="wizard-step-label" id="wizard-step-label">Step 1 of 4</span>
+          <div class="wizard-progress-track"><div class="wizard-progress-fill" id="wizard-progress-fill"></div></div>
+        </div>
+
+        <!-- Step 0: Name -->
+        <div class="wizard-pane" id="wizard-pane-0">
+          <p class="form-card-sub">Let's start with your name.</p>
           <div class="field">
-            <label for="m-name">Full name</label>
-            <input id="m-name" name="name" type="text" placeholder="Jordan Lee" required />
+            <label for="w-name">Full name</label>
+            <input id="w-name" type="text" placeholder="Jordan Lee" autocomplete="name" />
+          </div>
+          <p class="wizard-err" id="wizard-err-0"></p>
+          <button type="button" class="btn btn-amber wizard-btn-next" data-step="0">Continue</button>
+        </div>
+
+        <!-- Step 1: Expertise -->
+        <div class="wizard-pane" id="wizard-pane-1" style="display:none">
+          <p class="form-card-sub">What do you teach or guide students in?</p>
+          <div class="field">
+            <label for="w-expertise">Area(s) of expertise</label>
+            <input id="w-expertise" type="text" placeholder="e.g. Computer science, college admissions, startups" />
+          </div>
+          <p class="wizard-err" id="wizard-err-1"></p>
+          <button type="button" class="btn btn-amber wizard-btn-next" data-step="1">Continue</button>
+          <button type="button" class="btn-link wizard-btn-back" data-step="1">Back</button>
+        </div>
+
+        <!-- Step 2: Background (optional, skippable) -->
+        <div class="wizard-pane" id="wizard-pane-2" style="display:none">
+          <p class="form-card-sub">Tell us a bit more about yourself. <span style="font-weight:400;color:var(--muted)">(optional)</span></p>
+          <div class="field">
+            <label for="w-experience">Your background</label>
+            <textarea id="w-experience" placeholder="What makes you a great mentor? Roles, background, who you'd love to help."></textarea>
           </div>
           <div class="field">
-            <label for="m-email">Email</label>
-            <input id="m-email" name="email" type="email" placeholder="you@email.com" required />
+            <label for="w-linkedin">LinkedIn or portfolio</label>
+            <input id="w-linkedin" type="text" placeholder="linkedin.com/in/you" />
           </div>
-          <div class="field">
-            <label for="m-expertise">Area(s) of expertise</label>
-            <input id="m-expertise" name="expertise" type="text" placeholder="e.g. Computer science, college admissions, startups" required />
+          <button type="button" class="btn btn-amber wizard-btn-next" data-step="2">Continue</button>
+          <button type="button" class="btn-link wizard-btn-back" data-step="2">Back</button>
+        </div>
+
+        <!-- Step 3: Create account -->
+        <div class="wizard-pane" id="wizard-pane-3" style="display:none">
+          <p class="form-card-sub">Last step - create your account to join as a founding mentor.</p>
+          <div class="oauth" data-oauth-intent="mentor">
+            <button type="button" class="btn-oauth btn-google oauth-btn" data-provider="google">
+              <svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+              Continue with Google
+            </button>
+            <button type="button" class="btn-oauth btn-apple oauth-btn" data-provider="apple">
+              <svg viewBox="0 0 384 512" aria-hidden="true"><path fill="currentColor" d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg>
+              Continue with Apple
+            </button>
           </div>
-          <div class="field">
-            <label for="m-exp">A bit about your experience <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
-            <textarea id="m-exp" name="experience" placeholder="What makes you a great mentor? Roles, background, who you'd love to help."></textarea>
-          </div>
-          <div class="field">
-            <label for="m-linkedin">LinkedIn or portfolio <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
-            <input id="m-linkedin" name="linkedin" type="text" placeholder="linkedin.com/in/you" />
-          </div>
-          <button type="submit" class="btn btn-amber">Apply to be a founding mentor</button>
-        </form>
+          <div class="oauth-divider"><span>or sign up with email</span></div>
+          <form class="js-mentor" novalidate>
+            <input type="hidden" name="name" id="m-name" />
+            <input type="hidden" name="expertise" id="m-expertise" />
+            <input type="hidden" name="experience" id="m-experience" />
+            <input type="hidden" name="linkedin" id="m-linkedin" />
+            <div class="field">
+              <label for="m-email">Email</label>
+              <input id="m-email" name="email" type="email" placeholder="you@email.com" required />
+            </div>
+            <div class="field">
+              <label for="m-password">Create a password</label>
+              <input id="m-password" name="password" type="password" placeholder="At least 8 characters" autocomplete="new-password" minlength="8" required />
+              <span style="font-weight:400;color:var(--muted);font-size:.85em;display:block;margin-top:4px">You'll use this same login in the Mentara app when it launches.</span>
+            </div>
+            <button type="submit" class="btn btn-amber">Create my founding mentor account</button>
+          </form>
+          <button type="button" class="btn-link wizard-btn-back" data-step="3">Back</button>
+        </div>
+
         <p class="form-msg" role="status" aria-live="polite"></p>
       </div>
     </div>
@@ -406,6 +458,17 @@
           <input type="email" name="email" placeholder="you@email.com" aria-label="Email address" required />
           <button type="submit" class="btn btn-amber">Notify me at launch</button>
         </form>
+        <div class="oauth" data-oauth-intent="student">
+          <div class="oauth-divider"><span>or create your account now</span></div>
+          <button type="button" class="btn-oauth btn-google oauth-btn" data-provider="google">
+            <svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+            Continue with Google
+          </button>
+          <button type="button" class="btn-oauth btn-apple oauth-btn" data-provider="apple">
+            <svg viewBox="0 0 384 512" aria-hidden="true"><path fill="currentColor" d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg>
+            Continue with Apple
+          </button>
+        </div>
         <p class="form-note">No spam, just one email when we go live.</p>
         <p class="form-msg" role="status" aria-live="polite"></p>
         <span class="appstore-badge disabled" aria-label="Coming soon on the App Store">

@@ -86,3 +86,20 @@ export function mapAuthError(message: string): string {
 export function sanitizeEmail(raw: string): string {
   return raw.trim().toLowerCase();
 }
+
+/**
+ * Validates that a string is a safe, well-formed http(s) URL.
+ * Rejects every other scheme (javascript:, data:, file:, vbscript:, custom app
+ * schemes), whitespace, control characters, and anything over 2048 chars.
+ *
+ * Regex-based so it does not depend on a global URL constructor being polyfilled.
+ * The leading http(s):// requirement already blocks dangerous schemes; the
+ * explicit deny-list is defense in depth.
+ */
+export function isValidHttpUrl(raw: string): boolean {
+  const s = (raw ?? '').trim();
+  if (s.length < 4 || s.length > 2048) return false;
+  if (/[\s<>"'`]/.test(s)) return false;
+  if (/^(?:javascript|data|file|vbscript|blob):/i.test(s)) return false;
+  return /^https?:\/\/[^\s/$.?#][^\s]*$/i.test(s);
+}

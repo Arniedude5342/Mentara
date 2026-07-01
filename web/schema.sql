@@ -52,6 +52,16 @@ create policy "anon can apply as mentor"
   to anon
   with check (true);
 
+-- ── Admin read access (for admin.html dashboard) ─────────────
+-- Lets authenticated users (the founder) SELECT from both lists.
+drop policy if exists "authenticated can read waitlist" on public.waitlist;
+create policy "authenticated can read waitlist"
+  on public.waitlist for select to authenticated using (true);
+
+drop policy if exists "authenticated can read mentor_applications" on public.mentor_applications;
+create policy "authenticated can read mentor_applications"
+  on public.mentor_applications for select to authenticated using (true);
+
 -- ── Exporting your signups later ─────────────────────────────
 --   select email, created_at from public.waitlist order by created_at desc;
 --   select name, email, expertise, experience, linkedin, created_at

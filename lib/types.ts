@@ -2,7 +2,9 @@ export type UserRole = 'student' | 'mentor';
 
 export interface Profile {
   id: string;
-  email: string;
+  // Lives in the owner-only `private_profiles` table, not on the public
+  // `profiles` row. Only populated for the signed-in user's own profile.
+  email?: string | null;
   full_name: string | null;
   avatar_url: string | null;
   role: UserRole;
@@ -10,6 +12,7 @@ export interface Profile {
   location: string | null;
   website: string | null;
   onboarding_complete: boolean;
+  signup_source: 'app' | 'web' | null;
   referral_code: string | null;
   referred_by: string | null;
   achievements: string[];
@@ -37,7 +40,7 @@ export interface MentorProfile {
   availability: string[];
   hourly_rate: number;
   is_free: boolean;
-  rating: number | null; // NULL until a review exists — DB column is DECIMAL DEFAULT NULL
+  rating: number | null; // NULL until a review exists
   review_count: number;
   rating_sum: number;
   review_count_actual: number;
@@ -48,6 +51,7 @@ export interface MentorProfile {
   preferred_student_levels: string[];
   mentoring_style: string | null;
   languages: string[];
+  max_students: number | null;
   created_at: string;
   updated_at: string;
   // Joined from profiles table via getMentorById

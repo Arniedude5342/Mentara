@@ -18,7 +18,8 @@ import { getMyAssignment } from '@/lib/meetings';
 
 // Step 0 is always the age gate (both roles). Step 1 is welcome. Steps 2+ are role-specific.
 const TOTAL_STUDENT_STEPS = 6;
-const TOTAL_MENTOR_STEPS = 8;
+const TOTAL_MENTOR_STEPS = 9;   // added capacity step
+const TOTAL_BRIDGE_STEPS = 7;   // condensed flow for founding-mentor (web signup) accounts
 
 const GRADE_LEVELS = [
   { value: 'high_school', label: 'High School' },
@@ -30,6 +31,12 @@ const GRADE_LEVELS = [
 ] as const;
 
 type GradeLevel = typeof GRADE_LEVELS[number]['value'];
+
+const STUDENT_CAPACITY_OPTIONS = [
+  { value: 1 as const, label: '1 Student', desc: 'Focused one-on-one mentorship' },
+  { value: 2 as const, label: '2 Students', desc: 'Balanced commitment, double the impact' },
+  { value: 3 as const, label: '3 Students', desc: 'Maximum impact, still manageable' },
+];
 
 export default function OnboardingScreen() {
   const insets = useSafeAreaInsets();
@@ -56,6 +63,7 @@ export default function OnboardingScreen() {
   const [linkedInUrl, setLinkedInUrl] = useState('');
   const [ageBracket, setAgeBracket] = useState<'adult' | 'minor' | null>(null);
   const [guardianConsent, setGuardianConsent] = useState(false);
+  const [maxStudents, setMaxStudents] = useState<1 | 2 | 3>(1);
 
   const handleRetryProfile = async () => {
     if (retrying) return;
@@ -76,19 +84,18 @@ export default function OnboardingScreen() {
   }
 
   // Profile load failed (DB trigger may have raced or network blip).
-  // Give the user an escape hatch instead of freezing the screen forever.
   if (!profile) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: Colors.background, padding: 32, gap: 14 }}>
         <Ionicons name="alert-circle-outline" size={48} color={Colors.gray400} />
         <Text style={{ fontSize: 18, fontWeight: '700', color: Colors.dark, textAlign: 'center' }}>
-          Setting up your account…
+          Setting up your account...
         </Text>
         <Text style={{ fontSize: 14, color: Colors.gray500, textAlign: 'center', lineHeight: 20 }}>
           We could not load your profile. Tap retry, or sign out and try again.
         </Text>
         <Button
-          title={retrying ? 'Retrying…' : 'Retry'}
+          title={retrying ? 'Retrying...' : 'Retry'}
           onPress={handleRetryProfile}
           loading={retrying}
         />
@@ -100,64 +107,89 @@ export default function OnboardingScreen() {
   }
 
   const isStudent = profile.role === 'student';
-  const totalSteps = isStudent ? TOTAL_STUDENT_STEPS : TOTAL_MENTOR_STEPS;
+  // Founding mentors registered via the web form get a condensed bridge flow
+  const isBridgeMentor = !isStudent && profile.signup_source === 'web';
+
+  const totalSteps = isStudent
+    ? TOTAL_STUDENT_STEPS
+    : isBridgeMentor
+    ? TOTAL_BRIDGE_STEPS
+    : TOTAL_MENTOR_STEPS;
+
   const roleColor = isStudent ? Colors.primary : Colors.accent2;
   const roleLightColor = isStudent ? Colors.primaryLight : Colors.accent2Light;
-
 
   const toggleField = (arr: string[], set: (v: string[]) => void, val: string) => {
     set(arr.includes(val) ? arr.filter((f) => f !== val) : [...arr, val]);
   };
 
   const goNext = () => {
-    // Step 0: age gate — no user action needed (button disabled if underage, handled in AgeGateStep)
     if (step === 1) {
-      // Welcome step — ToS must be accepted
       if (!tosAccepted) {
         Alert.alert('Terms Required', 'Please accept the Terms of Service and Privacy Policy to continue.');
         return;
       }
     }
+
     if (isStudent) {
-      // Step 2: bio + location (shifted by 2 from old step 1)
       if (step === 2) {
         if (!bio.trim()) { Alert.alert('Required', 'Please write a short bio before continuing.'); return; }
         if (!location.trim()) { Alert.alert('Required', 'Please enter your location before continuing.'); return; }
       }
-      // Step 3: grade level
       if (step === 3 && !gradeLevel) {
         Alert.alert('Required', 'Please select your education level before continuing.');
         return;
       }
-      // Step 4: fields of interest
       if (step === 4 && fieldsOfInterest.length === 0) {
         Alert.alert('Required', 'Please select at least one field of interest.');
         return;
       }
-    } else {
-      // Mentor step 2: bio + location
+    } else if (isBridgeMentor) {
+      // Bridge flow validation
       if (step === 2) {
         if (!bio.trim()) { Alert.alert('Required', 'Please write a professional bio before continuing.'); return; }
         if (!location.trim()) { Alert.alert('Required', 'Please enter your location before continuing.'); return; }
       }
-      // Mentor step 3: title + institution + years
+      // Step 3: combined title + institution + years + linkedin
+      if (step === 3) {
+        if (!title.trim()) { Alert.alert('Required', 'Please enter your professional title.'); return; }
+        if (!institution.trim()) { Alert.alert('Required', 'Please enter your institution or company.'); return; }
+        if (!yearsExp.trim()) { Alert.alert('Required', 'Please enter your years of experience.'); return; }
+        const url = linkedInUrl.trim();
+        if (!url) { Alert.alert('Required', 'Please enter your LinkedIn profile URL.'); return; }
+        const isValidLinkedIn = /^https?:\/\/(www\.)?linkedin\.com\/in\/[a-zA-Z0-9\-_%]+\/?$/.test(url);
+        if (!isValidLinkedIn) { Alert.alert('Invalid URL', 'Please enter a valid LinkedIn profile URL, e.g. https://linkedin.com/in/yourname'); return; }
+      }
+      if (step === 4 && fieldsOfExpertise.length === 0) {
+        Alert.alert('Required', 'Please select at least one area of expertise.');
+        return;
+      }
+      // Step 5 is the capacity question - no validation needed (defaults to 1)
+      // Step 6 is the final combined levels + availability + style step
+    } else {
+      // Regular mentor flow validation
+      if (step === 2) {
+        if (!bio.trim()) { Alert.alert('Required', 'Please write a professional bio before continuing.'); return; }
+        if (!location.trim()) { Alert.alert('Required', 'Please enter your location before continuing.'); return; }
+      }
       if (step === 3) {
         if (!title.trim()) { Alert.alert('Required', 'Please enter your professional title.'); return; }
         if (!institution.trim()) { Alert.alert('Required', 'Please enter your institution or company.'); return; }
         if (!yearsExp.trim()) { Alert.alert('Required', 'Please enter your years of experience.'); return; }
       }
-      // Mentor step 4: LinkedIn URL verification
       if (step === 4) {
         const url = linkedInUrl.trim();
         if (!url) { Alert.alert('Required', 'Please enter your LinkedIn profile URL.'); return; }
         const isValidLinkedIn = /^https?:\/\/(www\.)?linkedin\.com\/in\/[a-zA-Z0-9\-_%]+\/?$/.test(url);
         if (!isValidLinkedIn) { Alert.alert('Invalid URL', 'Please enter a valid LinkedIn profile URL, e.g. https://linkedin.com/in/yourname'); return; }
       }
-      // Mentor step 5: fields of expertise
       if (step === 5 && fieldsOfExpertise.length === 0) {
         Alert.alert('Required', 'Please select at least one area of expertise.');
         return;
       }
+      // Step 6 is preferred student levels (optional)
+      // Step 7 is capacity question (no validation needed)
+      // Step 8 is style + availability
     }
     setStep((s) => Math.min(s + 1, totalSteps - 1));
   };
@@ -169,6 +201,10 @@ export default function OnboardingScreen() {
     if (isStudent) {
       if (!learningGoals.trim()) { Alert.alert('Required', 'Please share your learning goals before finishing.'); return; }
       if (availability.length === 0) { Alert.alert('Required', 'Please select at least one availability option.'); return; }
+    } else if (isBridgeMentor) {
+      // Last step of bridge: levels + availability + style
+      if (!mentoringStyle.trim()) { Alert.alert('Required', 'Please describe your mentoring style before finishing.'); return; }
+      if (mentorAvailability.length === 0) { Alert.alert('Required', 'Please select at least one availability option.'); return; }
     } else {
       if (!mentoringStyle.trim()) { Alert.alert('Required', 'Please describe your mentoring style before finishing.'); return; }
       if (mentorAvailability.length === 0) { Alert.alert('Required', 'Please select at least one availability option.'); return; }
@@ -198,7 +234,6 @@ export default function OnboardingScreen() {
           learning_goals: learningGoals,
           availability,
         });
-        // Only trigger auto-assign on first completion; skip if student already has an active mentor
         const existingAssignment = await getMyAssignment(user.id, 'student');
         if (!existingAssignment) {
           triggerAutoAssignMentor(user.id)
@@ -215,8 +250,8 @@ export default function OnboardingScreen() {
           mentoring_style: mentoringStyle,
           linkedin_url: linkedInUrl.trim(),
           is_free: true,
+          max_students: maxStudents,
         });
-        // Fire-and-forget: AI verifies profile and auto-approves/rejects
         triggerAutoVerifyMentor(user.id)
           .catch((err: any) => console.warn('[onboarding] auto-verify-mentor failed:', err));
       }
@@ -229,6 +264,70 @@ export default function OnboardingScreen() {
     }
   };
 
+  // ── Capacity step (shared between regular and bridge mentor flows) ─
+  const capacityStep = (
+    <ScrollView key="capacity" style={styles.stepContent} contentContainerStyle={{ gap: 16, paddingBottom: 24 }}>
+      <StepHeader
+        title="How many students at once?"
+        subtitle="Choose how many students you'd like to mentor at the same time."
+        icon="people-outline"
+        color={roleColor}
+        bg={roleLightColor}
+      />
+      <View style={[styles.capacityDisclaimer, { borderColor: roleColor + '30', backgroundColor: roleColor + '0A' }]}>
+        <Ionicons name="time-outline" size={16} color={roleColor} style={{ flexShrink: 0, marginTop: 1 }} />
+        <Text style={[styles.capacityDisclaimerText, { color: Colors.gray700 }]}>
+          Each student you mentor adds roughly{' '}
+          <Text style={{ fontWeight: '700' }}>1 to 1.5 hrs/month</Text>{' '}
+          to your commitment. With up to 3 students you'll invest at most{' '}
+          <Text style={{ fontWeight: '700' }}>3 hrs/month</Text>{' '}
+          total, and help{' '}
+          <Text style={{ fontWeight: '700' }}>2-3x more students</Text>{' '}
+          grow.
+        </Text>
+      </View>
+      <View style={styles.capacityOptions}>
+        {STUDENT_CAPACITY_OPTIONS.map((opt) => (
+          <TouchableOpacity
+            key={opt.value}
+            style={[
+              styles.capacityOption,
+              maxStudents === opt.value && {
+                borderColor: roleColor,
+                backgroundColor: roleLightColor,
+              },
+            ]}
+            onPress={() => setMaxStudents(opt.value)}
+            accessibilityRole="button"
+            accessibilityLabel={opt.label}
+            activeOpacity={0.8}
+          >
+            <View style={[
+              styles.capacityOptionIcon,
+              { backgroundColor: maxStudents === opt.value ? roleColor : Colors.gray100 },
+            ]}>
+              <Ionicons
+                name={maxStudents === opt.value ? 'radio-button-on' : 'radio-button-off'}
+                size={20}
+                color={maxStudents === opt.value ? Colors.white : Colors.gray400}
+              />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[
+                styles.capacityOptionLabel,
+                { color: maxStudents === opt.value ? roleColor : Colors.dark },
+              ]}>
+                {opt.label}
+              </Text>
+              <Text style={styles.capacityOptionDesc}>{opt.desc}</Text>
+            </View>
+          </TouchableOpacity>
+        ))}
+      </View>
+    </ScrollView>
+  );
+
+  // ── Student steps ──────────────────────────────────────────────
   const studentSteps = [
     // Step 0: Age gate
     <AgeGateStep
@@ -241,7 +340,7 @@ export default function OnboardingScreen() {
     />,
 
     // Step 1: Welcome + ToS
-    <WelcomeStep key="welcome" isStudent name={profile?.full_name} tosAccepted={tosAccepted} onTosChange={setTosAccepted} />,
+    <WelcomeStep key="welcome" isStudent name={profile?.full_name} tosAccepted={tosAccepted} onTosChange={setTosAccepted} isBridge={false} />,
 
     // Step 2: Bio
     <View key="bio" style={styles.stepContent}>
@@ -274,7 +373,7 @@ export default function OnboardingScreen() {
       />
     </View>,
 
-    // Step 2: Education level
+    // Step 3: Education level
     <View key="grade" style={styles.stepContent}>
       <StepHeader
         title="What's your education level?"
@@ -302,7 +401,7 @@ export default function OnboardingScreen() {
       </View>
     </View>,
 
-    // Step 3: Fields of interest
+    // Step 4: Fields of interest
     <View key="fields" style={styles.stepContent}>
       <StepHeader
         title="What fields interest you?"
@@ -329,7 +428,7 @@ export default function OnboardingScreen() {
       </ScrollView>
     </View>,
 
-    // Step 4: Goals & availability
+    // Step 5: Goals + availability
     <View key="goals" style={styles.stepContent}>
       <StepHeader
         title="What are your learning goals?"
@@ -368,6 +467,7 @@ export default function OnboardingScreen() {
     </View>,
   ];
 
+  // ── Regular mentor steps (9 steps) ────────────────────────────
   const mentorSteps = [
     // Step 0: Age gate
     <AgeGateStep
@@ -380,9 +480,9 @@ export default function OnboardingScreen() {
     />,
 
     // Step 1: Welcome + ToS
-    <WelcomeStep key="welcome" isStudent={false} name={profile?.full_name} tosAccepted={tosAccepted} onTosChange={setTosAccepted} />,
+    <WelcomeStep key="welcome" isStudent={false} name={profile?.full_name} tosAccepted={tosAccepted} onTosChange={setTosAccepted} isBridge={false} />,
 
-    // Step 2: Bio
+    // Step 2: Bio + location
     <View key="bio" style={styles.stepContent}>
       <StepHeader title="Your professional bio" subtitle="Tell students about your background and passion for mentoring." icon="person-circle-outline" color={roleColor} bg={roleLightColor} />
       <TextInput
@@ -405,7 +505,7 @@ export default function OnboardingScreen() {
       />
     </View>,
 
-    // Title & institution
+    // Step 3: Title + institution + years
     <View key="role" style={styles.stepContent}>
       <StepHeader title="Your professional role" subtitle="This appears on your public mentor profile." icon="briefcase-outline" color={roleColor} bg={roleLightColor} />
       <TextInput
@@ -435,7 +535,7 @@ export default function OnboardingScreen() {
       />
     </View>,
 
-    // LinkedIn verification
+    // Step 4: LinkedIn
     <View key="linkedin" style={styles.stepContent}>
       <StepHeader title="Verify your credentials" subtitle="Your LinkedIn profile helps students trust you and lets our team verify your background before you're matched." icon="logo-linkedin" color={roleColor} bg={roleLightColor} />
       <TextInput
@@ -456,7 +556,7 @@ export default function OnboardingScreen() {
       </View>
     </View>,
 
-    // Expertise
+    // Step 5: Expertise
     <View key="expertise" style={styles.stepContent}>
       <StepHeader title="Areas of expertise" subtitle="Select your fields. Students will discover you through these." icon="star-outline" color={roleColor} bg={roleLightColor} />
       <ScrollView style={styles.fieldScroll} showsVerticalScrollIndicator={false}>
@@ -476,7 +576,7 @@ export default function OnboardingScreen() {
       </ScrollView>
     </View>,
 
-    // Preferred student levels
+    // Step 6: Preferred student levels
     <View key="levels" style={styles.stepContent}>
       <StepHeader title="Who do you prefer to mentor?" subtitle="Select the student levels you're best suited to guide. Leave blank for any." icon="people-outline" color={roleColor} bg={roleLightColor} />
       <View style={styles.optionGrid}>
@@ -499,7 +599,10 @@ export default function OnboardingScreen() {
       </View>
     </View>,
 
-    // Style & availability
+    // Step 7: Student capacity (NEW)
+    capacityStep,
+
+    // Step 8: Mentoring style + availability
     <View key="style" style={styles.stepContent}>
       <StepHeader title="Your mentoring style" subtitle="Help students know what to expect from working with you." icon="chatbubbles-outline" color={roleColor} bg={roleLightColor} />
       <TextInput
@@ -526,10 +629,197 @@ export default function OnboardingScreen() {
         ))}
       </View>
     </View>,
-
   ];
 
-  const steps = isStudent ? studentSteps : mentorSteps;
+  // ── Bridge mentor steps (7 steps, condensed for web signups) ──
+  const bridgeMentorSteps = [
+    // Step 0: Age gate
+    <AgeGateStep
+      key="age"
+      bracket={ageBracket}
+      onPickBracket={setAgeBracket}
+      guardianConsent={guardianConsent}
+      onConsentChange={setGuardianConsent}
+      onBlock={() => Alert.alert('Age Requirement', 'Mentara is for users 13 and older.', [{ text: 'OK' }])}
+    />,
+
+    // Step 1: Founding mentor welcome + ToS
+    <WelcomeStep key="welcome" isStudent={false} name={profile?.full_name} tosAccepted={tosAccepted} onTosChange={setTosAccepted} isBridge={true} />,
+
+    // Step 2: Bio + location
+    <View key="bio" style={styles.stepContent}>
+      <StepHeader
+        title="Your bio and location"
+        subtitle="Your application bio is a great start. Expand or refine it here."
+        icon="person-circle-outline"
+        color={roleColor}
+        bg={roleLightColor}
+      />
+      <TextInput
+        style={styles.textarea}
+        value={bio}
+        onChangeText={setBio}
+        placeholder="Expand on what you wrote during your application. Students will read this to learn about your background and why you mentor..."
+        placeholderTextColor={Colors.gray400}
+        multiline numberOfLines={5} textAlignVertical="top" maxLength={600}
+        accessibilityLabel="Professional bio"
+      />
+      <Text style={styles.charCount}>{bio.length}/600</Text>
+      <TextInput
+        style={styles.input}
+        value={location}
+        onChangeText={setLocation}
+        placeholder="Location (e.g. Palo Alto, CA)"
+        placeholderTextColor={Colors.gray400}
+        accessibilityLabel="Location"
+      />
+    </View>,
+
+    // Step 3: Role + LinkedIn (combined - waitlist captured these loosely)
+    <ScrollView key="role-linkedin" style={styles.stepContent} contentContainerStyle={{ gap: 16, paddingBottom: 24 }}>
+      <StepHeader
+        title="Role and credentials"
+        subtitle="A few details we didn't capture during sign-up."
+        icon="briefcase-outline"
+        color={roleColor}
+        bg={roleLightColor}
+      />
+      <TextInput
+        style={styles.input}
+        value={title}
+        onChangeText={setTitle}
+        placeholder="Title (e.g. Professor, Senior Engineer, VP of Product)"
+        placeholderTextColor={Colors.gray400}
+        accessibilityLabel="Professional title"
+      />
+      <TextInput
+        style={styles.input}
+        value={institution}
+        onChangeText={setInstitution}
+        placeholder="Institution (e.g. MIT, Google, McKinsey)"
+        placeholderTextColor={Colors.gray400}
+        accessibilityLabel="Institution or company"
+      />
+      <TextInput
+        style={styles.input}
+        value={yearsExp}
+        onChangeText={(v) => setYearsExp(v.replace(/\D/g, ''))}
+        placeholder="Years of experience"
+        placeholderTextColor={Colors.gray400}
+        keyboardType="numeric"
+        accessibilityLabel="Years of experience"
+      />
+      <View style={{ gap: 6 }}>
+        <Text style={styles.sectionSubLabel}>LinkedIn profile</Text>
+        <TextInput
+          style={styles.input}
+          value={linkedInUrl}
+          onChangeText={setLinkedInUrl}
+          placeholder="https://linkedin.com/in/yourname"
+          placeholderTextColor={Colors.gray400}
+          autoCapitalize="none"
+          keyboardType="url"
+          accessibilityLabel="LinkedIn profile URL"
+        />
+        <View style={{ flexDirection: 'row', gap: 8, alignItems: 'flex-start' }}>
+          <Ionicons name="shield-checkmark-outline" size={14} color={Colors.gray400} style={{ marginTop: 1 }} />
+          <Text style={{ flex: 1, fontSize: 12, color: Colors.gray400, lineHeight: 17 }}>
+            Our team verifies your background before you're matched. Usually under 24 hours.
+          </Text>
+        </View>
+      </View>
+    </ScrollView>,
+
+    // Step 4: Expertise (select from chips to formalize the text they typed)
+    <View key="expertise" style={styles.stepContent}>
+      <StepHeader
+        title="Your areas of expertise"
+        subtitle="Pick from the list to formalize what you wrote during sign-up."
+        icon="star-outline"
+        color={roleColor}
+        bg={roleLightColor}
+      />
+      <ScrollView style={styles.fieldScroll} showsVerticalScrollIndicator={false}>
+        <View style={styles.fieldGrid}>
+          {FIELDS_OF_EXPERTISE.map((f) => (
+            <TouchableOpacity
+              key={f}
+              style={[styles.fieldChip, fieldsOfExpertise.includes(f) && { borderColor: roleColor, backgroundColor: roleLightColor }]}
+              onPress={() => toggleField(fieldsOfExpertise, setFieldsOfExpertise, f)}
+              accessibilityLabel={fieldsOfExpertise.includes(f) ? `Remove ${f}` : `Add ${f}`}
+              accessibilityRole="button"
+            >
+              <Text style={[styles.fieldChipText, fieldsOfExpertise.includes(f) && { color: roleColor, fontWeight: '700' as const }]}>{f}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </ScrollView>
+    </View>,
+
+    // Step 5: Student capacity (the key new question not in the waitlist form)
+    capacityStep,
+
+    // Step 6: Preferred levels + mentoring style + availability (combined)
+    <ScrollView key="final" style={styles.stepContent} contentContainerStyle={{ gap: 16, paddingBottom: 24 }}>
+      <StepHeader
+        title="Who you mentor and when"
+        subtitle="A few last details so we can match you with the right student."
+        icon="chatbubbles-outline"
+        color={roleColor}
+        bg={roleLightColor}
+      />
+      <Text style={styles.sectionSubLabel}>Preferred student levels (optional)</Text>
+      <View style={styles.optionGrid}>
+        {GRADE_LEVELS.map((g) => (
+          <TouchableOpacity
+            key={g.value}
+            style={[
+              styles.optionChip,
+              preferredStudentLevels.includes(g.value) && { borderColor: roleColor, backgroundColor: roleColor },
+            ]}
+            onPress={() => toggleField(preferredStudentLevels, setPreferredStudentLevels, g.value)}
+            accessibilityLabel={g.label}
+            accessibilityRole="button"
+          >
+            <Text style={[styles.optionChipText, preferredStudentLevels.includes(g.value) && { color: Colors.white }]}>
+              {g.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+      <Text style={styles.sectionSubLabel}>Your mentoring style</Text>
+      <TextInput
+        style={styles.textarea}
+        value={mentoringStyle}
+        onChangeText={setMentoringStyle}
+        placeholder="I prefer Socratic discussions and hands-on project reviews. I'll help you develop your thinking rather than give you the answers directly..."
+        placeholderTextColor={Colors.gray400}
+        multiline numberOfLines={4} textAlignVertical="top" maxLength={400}
+        accessibilityLabel="Mentoring style"
+      />
+      <Text style={styles.sectionSubLabel}>Your availability</Text>
+      <View style={styles.optionGrid}>
+        {AVAILABILITY_OPTIONS.map((a) => (
+          <TouchableOpacity
+            key={a.value}
+            style={[styles.optionChip, mentorAvailability.includes(a.value) && { borderColor: roleColor, backgroundColor: roleColor }]}
+            onPress={() => toggleField(mentorAvailability, setMentorAvailability, a.value)}
+            accessibilityLabel={a.label}
+            accessibilityRole="button"
+          >
+            <Text style={[styles.optionChipText, mentorAvailability.includes(a.value) && { color: Colors.white }]}>{a.label}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    </ScrollView>,
+  ];
+
+  const steps = isStudent
+    ? studentSteps
+    : isBridgeMentor
+    ? bridgeMentorSteps
+    : mentorSteps;
+
   const isLastStep = step === totalSteps - 1;
   const isAgeGate = step === 0;
   const isFirstStep = step === 1;
@@ -538,7 +828,7 @@ export default function OnboardingScreen() {
 
   return (
     <View style={[styles.root, { paddingTop: insets.top }]}>
-      {/* Progress bar — hidden on age gate and welcome steps */}
+      {/* Progress bar - hidden on age gate and welcome steps */}
       {!isAgeGate && !isFirstStep && (
         <View style={styles.progressContainer}>
           <TouchableOpacity
@@ -621,7 +911,7 @@ function AgeGateStep({
           accessibilityLabel="I am 13 to 17"
         >
           <Ionicons name={bracket === 'minor' ? 'radio-button-on' : 'radio-button-off'} size={20} color={bracket === 'minor' ? Colors.primary : Colors.gray400} />
-          <Text style={styles.ageBracketText}>I am 13–17</Text>
+          <Text style={styles.ageBracketText}>I am 13-17</Text>
         </TouchableOpacity>
       </View>
 
@@ -654,36 +944,53 @@ function AgeGateStep({
   );
 }
 
-function WelcomeStep({ isStudent, name, tosAccepted, onTosChange }: {
+function WelcomeStep({ isStudent, name, tosAccepted, onTosChange, isBridge }: {
   isStudent: boolean;
   name?: string | null;
   tosAccepted: boolean;
   onTosChange: (v: boolean) => void;
+  isBridge: boolean;
 }) {
   const gradColors = isStudent
     ? (['#083540', '#0D4F5C', '#1A7A8A'] as const)
     : (['#2C2520', '#5C2410', '#B8491A'] as const);
   const iconColor = isStudent ? Colors.primary : Colors.accent2;
+  const firstName = name ? name.split(' ')[0] : '';
+
+  const bulletPoints = isStudent
+    ? ['Tell us your interests and goals', 'Get matched with expert mentors', 'Build meaningful connections']
+    : isBridge
+    ? ['Finish your profile in 2 minutes', 'Get matched with your first student', 'Make a real difference from day one']
+    : ['Share your expertise', 'Connect with eager students', 'Make a real difference'];
+
+  const subtitle = isStudent
+    ? "Let's set up your student profile so we can match you with the perfect mentors."
+    : isBridge
+    ? "Welcome back! We just need a few more details we didn't capture during sign-up and you'll be ready to go."
+    : "Let's build your mentor profile so students can discover and connect with you.";
+
+  const titleText = isBridge
+    ? `Welcome back${firstName ? `, ${firstName}` : ''}!`
+    : `Welcome${firstName ? `, ${firstName}` : ''}! 👋`;
+
+  const estimateText = isBridge ? 'Takes about 2 minutes' : 'Takes about 3 minutes';
+
   return (
     <LinearGradient colors={gradColors} style={styles.welcomeGrad}>
       <View style={styles.welcomeContent}>
         <View style={styles.welcomeIcon}>
-          <Ionicons name={isStudent ? 'school' : 'medal'} size={48} color={iconColor} />
+          <Ionicons name={isStudent ? 'school' : isBridge ? 'star' : 'medal'} size={48} color={iconColor} />
         </View>
-        <Text style={styles.welcomeTitle}>
-          Welcome{name ? `, ${name.split(' ')[0]}` : ''}! 👋
-        </Text>
-        <Text style={styles.welcomeSubtitle}>
-          {isStudent
-            ? "Let's set up your student profile so we can match you with the perfect mentors."
-            : "Let's build your mentor profile so students can discover and connect with you."
-          }
-        </Text>
+        {isBridge && (
+          <View style={[styles.foundingBadge, { borderColor: iconColor + '60', backgroundColor: iconColor + '20' }]}>
+            <Ionicons name="ribbon-outline" size={13} color={iconColor} />
+            <Text style={[styles.foundingBadgeText, { color: iconColor }]}>Founding Mentor</Text>
+          </View>
+        )}
+        <Text style={styles.welcomeTitle}>{titleText}</Text>
+        <Text style={styles.welcomeSubtitle}>{subtitle}</Text>
         <View style={styles.welcomePoints}>
-          {(isStudent
-            ? ['Tell us your interests & goals', 'Get matched with expert mentors', 'Build meaningful connections']
-            : ['Share your expertise', 'Connect with eager students', 'Make a real difference']
-          ).map((p, i) => (
+          {bulletPoints.map((p, i) => (
             <View key={i} style={styles.welcomePoint}>
               <View style={styles.welcomeCheck}>
                 <Ionicons name="checkmark" size={14} color={iconColor} />
@@ -692,7 +999,7 @@ function WelcomeStep({ isStudent, name, tosAccepted, onTosChange }: {
             </View>
           ))}
         </View>
-        <Text style={styles.welcomeEstimate}>Takes about 3 minutes</Text>
+        <Text style={styles.welcomeEstimate}>{estimateText}</Text>
 
         {/* ToS checkbox */}
         <TouchableOpacity
@@ -802,6 +1109,15 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.white, alignItems: 'center', justifyContent: 'center',
     ...Shadow.lg,
   },
+  foundingBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 12, paddingVertical: 5,
+    borderRadius: Radius.full, borderWidth: 1,
+    marginTop: -8,
+  },
+  foundingBadgeText: {
+    fontSize: 12, fontWeight: '700', letterSpacing: 0.3,
+  },
   welcomeTitle: { fontSize: 28, fontWeight: '800', color: Colors.white, textAlign: 'center' },
   welcomeSubtitle: {
     fontSize: 16, color: 'rgba(255,255,255,0.82)', lineHeight: 24, textAlign: 'center',
@@ -880,4 +1196,31 @@ const styles = StyleSheet.create({
   fieldChipText: { fontSize: 13, color: Colors.gray700, fontWeight: '500' },
   fieldChipTextActive: { color: Colors.primary, fontWeight: '700' },
 
+  // Capacity step
+  capacityDisclaimer: {
+    flexDirection: 'row', alignItems: 'flex-start', gap: 10,
+    borderWidth: 1, borderRadius: Radius.lg,
+    padding: 14,
+  },
+  capacityDisclaimerText: {
+    flex: 1, fontSize: 13, lineHeight: 20,
+  },
+  capacityOptions: { gap: 12 },
+  capacityOption: {
+    flexDirection: 'row', alignItems: 'center', gap: 14,
+    backgroundColor: Colors.white, borderRadius: Radius.lg,
+    borderWidth: 1.5, borderColor: Colors.gray200,
+    padding: 16,
+    ...Shadow.sm,
+  },
+  capacityOptionIcon: {
+    width: 38, height: 38, borderRadius: Radius.full,
+    alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+  },
+  capacityOptionLabel: {
+    fontSize: 15, fontWeight: '700',
+  },
+  capacityOptionDesc: {
+    fontSize: 12, color: Colors.gray400, marginTop: 2,
+  },
 });
