@@ -76,10 +76,13 @@ Deno.serve(async (req: Request) => {
     }
 
     // 4. Trigger auto-assign-mentor for the first waiting student.
-    //    The DB unique index ensures only one assignment can be created even
-    //    if multiple edge function calls race.
+    //    Pass the internal secret so auto-assign-mentor authorizes this as an
+    //    internal (non-student) caller — it can't verify a student JWT here.
+    //    The enforce_mentor_capacity trigger + unique student index keep
+    //    assignment creation race-safe even if multiple calls overlap.
     const target = waitingStudents[0];
     supabase.functions.invoke('auto-assign-mentor', {
+      headers: { Authorization: `Bearer ${internalSecret}` },
       body: { studentId: target.id },
     }).catch((err: any) =>
       console.error('[match-waiting-students] auto-assign-mentor failed:', err)

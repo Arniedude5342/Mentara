@@ -23,22 +23,38 @@ function escapeHtml(s: string): string {
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response(null, { status: 204 });
 
-  // Enforce internal-caller authentication before touching any data.
-  const internalSecret = Deno.env.get('INTERNAL_FUNCTION_SECRET');
-  const authHeader = req.headers.get('Authorization') ?? '';
-  if (!internalSecret || authHeader !== `Bearer ${internalSecret}`) {
-    return json({ error: 'Unauthorized' }, 401);
-  }
-
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
   const geminiKey = Deno.env.get('GOOGLE_API_KEY')!;
   const resendKey = Deno.env.get('RESEND_API_KEY')!;
+  const internalSecret = Deno.env.get('INTERNAL_FUNCTION_SECRET') ?? '';
   const supabase = createClient(supabaseUrl, serviceKey);
+
+  // Two authorized callers:
+  //   • An internal function (internal secret / service key).
+  //   • A signed-in mentor requesting verification of their OWN profile
+  //     (fired at the end of mentor onboarding). The AI — never the user —
+  //     decides the outcome, so self-triggering grants no privilege.
+  const authHeader = req.headers.get('Authorization') ?? '';
+  const bearer = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
+  const isInternal =
+    (!!internalSecret && bearer === internalSecret) ||
+    (!!serviceKey && bearer === serviceKey);
 
   try {
     const { mentorId } = await req.json();
     if (!mentorId) return json({ error: 'Missing mentorId' }, 400);
+
+    if (!isInternal) {
+      const userClient = createClient(supabaseUrl, anonKey, {
+        global: { headers: { Authorization: authHeader } },
+      });
+      const { data: { user }, error: authError } = await userClient.auth.getUser();
+      if (authError || !user || user.id !== mentorId) {
+        return json({ error: 'Unauthorized' }, 401);
+      }
+    }
 
     const { data: mp } = await supabase
       .from('mentor_profiles')
@@ -113,9 +129,15 @@ Return ONLY valid JSON:
       console.error('[auto-verify-mentor] Gemini error:', await geminiRes.text());
     }
 
-    // AI unavailable — leave verification_status as 'pending' for manual admin review
+    // AI unavailable — leave verification_status as 'pending' and email the admin
+    // so the mentor can still be approved manually instead of sitting forever.
     if (approve === null) {
-      console.error('[auto-verify-mentor] AI unavailable for mentor', mentorId, '— leaving as pending');
+      console.error('[auto-verify-mentor] AI unavailable for mentor', mentorId, '— notifying admin for manual review');
+      const secretForNotify = Deno.env.get('INTERNAL_FUNCTION_SECRET') ?? '';
+      supabase.functions.invoke('notify-admin-new-mentor', {
+        headers: { Authorization: `Bearer ${secretForNotify}` },
+        body: { mentorId },
+      }).catch((err: any) => console.error('[auto-verify-mentor] notify-admin failed:', err));
       return json({ approved: null, reason });
     }
 

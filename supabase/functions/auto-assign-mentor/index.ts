@@ -29,15 +29,27 @@ Deno.serve(async (req: Request) => {
   const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
   const geminiKey = Deno.env.get('GOOGLE_API_KEY')!;
+  const internalSecret = Deno.env.get('INTERNAL_FUNCTION_SECRET') ?? '';
 
-  // Verify the caller is authenticated and is the student being matched.
-  // Prevents a user from triggering assignment for someone else's account.
+  // Two authorized callers:
+  //   • A signed-in student matching their OWN account (app onboarding / discover).
+  //   • An internal function (match-waiting-students) using the internal secret
+  //     or service-role key to match an arbitrary waiting student.
   const authHeader = req.headers.get('Authorization') ?? '';
-  const userClient = createClient(supabaseUrl, anonKey, {
-    global: { headers: { Authorization: authHeader } },
-  });
-  const { data: { user }, error: authError } = await userClient.auth.getUser();
-  if (authError || !user) return json({ error: 'Unauthorized' }, 401);
+  const bearer = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
+  const isInternal =
+    (!!internalSecret && bearer === internalSecret) ||
+    (!!serviceKey && bearer === serviceKey);
+
+  let callerId: string | null = null;
+  if (!isInternal) {
+    const userClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+    const { data: { user }, error: authError } = await userClient.auth.getUser();
+    if (authError || !user) return json({ error: 'Unauthorized' }, 401);
+    callerId = user.id;
+  }
 
   const supabase = createClient(supabaseUrl, serviceKey);
 
@@ -45,8 +57,8 @@ Deno.serve(async (req: Request) => {
     const { studentId } = await req.json();
     if (!studentId) return json({ error: 'Missing studentId' }, 400);
 
-    // Caller must be the student — prevent cross-account manipulation
-    if (user.id !== studentId) return json({ error: 'Forbidden' }, 403);
+    // A student caller may only match themselves; internal callers may match anyone.
+    if (!isInternal && callerId !== studentId) return json({ error: 'Forbidden' }, 403);
 
     // 1. Fetch student profile
     const { data: studentProfile, error: spError } = await supabase
@@ -235,23 +247,12 @@ Return ONLY valid JSON with this exact structure:
       return json({ error: 'Failed to save assignment', assigned: false }, 500);
     }
 
-    // 8. Re-check mentor's current load. If they have now reached their max_students
-    //    limit after this assignment, mark them unavailable so they won't be queried
-    //    in future rounds. If they still have capacity, leave is_available = true.
-    const assignedMentor = availableMentors.find((m: any) => m.id === matchResult.mentor_id);
-    const mentorLimit = (assignedMentor?.max_students as number | null) ?? DEFAULT_MAX_STUDENTS;
-    const newCount = (assignmentCounts.get(matchResult.mentor_id) ?? 0) + 1;
-    if (newCount >= mentorLimit) {
-      const { error: availError } = await supabase
-        .from('mentor_profiles')
-        .update({ is_available: false })
-        .eq('id', matchResult.mentor_id);
-      if (availError) {
-        console.error('[auto-assign-mentor] Failed to mark mentor unavailable:', availError.message);
-      }
-    }
+    // 8. Availability is now maintained by the DB trigger sync_mentor_availability,
+    //    which recomputes is_available (active_count < max_students) on every
+    //    assignment change. No manual flip needed here — the trigger is
+    //    authoritative and race-safe alongside enforce_mentor_capacity.
 
-    // 10. Trigger generate-call-topics in the background
+    // 9. Trigger generate-call-topics in the background
     const mentorData = availableMentors.find((m: any) => m.id === matchResult.mentor_id);
     const studentName = await supabase
       .from('profiles')
